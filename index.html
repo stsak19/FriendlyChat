@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="FriendlyChat">
 <title>FriendlyChat</title>
@@ -33,7 +33,7 @@
 html,body{margin:0;height:100%}
 /* the page itself never scrolls or bounces: only the lists inside it do,
    so the top bar, the search and the bottom navbar stay put */
-html,body{position:fixed;top:0;left:0;right:0;height:var(--apph,100%);width:100%;overflow:hidden;overscroll-behavior:none}
+html,body{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:none}
 html{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}
 /* 16px stops iPhone from zooming in when you tap a field */
 input,textarea,select{font-size:16px!important}
@@ -1919,18 +1919,7 @@ function showReactors(id){
       if(kb){const box=$('messages');if(box&&box.scrollHeight-box.scrollTop-box.clientHeight<200)box.scrollTop=box.scrollHeight;}
     });
   };
-  // iPhone home-screen app: iOS reports the screen ~one status bar shorter than it is,
-  // which left an empty strip under the composer. Use the real screen height instead.
-  const fixHeight=()=>{
-    if(navigator.standalone!==true||root.classList.contains('kb-open'))return root.style.removeProperty('--apph');
-    const portrait=innerHeight>innerWidth;
-    const full=portrait?Math.max(screen.width,screen.height):Math.min(screen.width,screen.height);
-    const miss=full-innerHeight;
-    if(miss>10&&miss<120)root.style.setProperty('--apph',full+'px');else root.style.removeProperty('--apph');
-  };
-  vv.addEventListener('resize',()=>{fit();requestAnimationFrame(fixHeight);});vv.addEventListener('scroll',fit);
-  addEventListener('orientationchange',()=>setTimeout(fixHeight,300));
-  fit();fixHeight();
+  vv.addEventListener('resize',fit);vv.addEventListener('scroll',fit);fit();
 })();
 
 /* ================= NO ZOOM ================= */
