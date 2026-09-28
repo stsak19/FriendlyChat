@@ -289,6 +289,11 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;backgrou
 .settings-top h3{margin:10px 0 2px;font-size:19px}
 .settings-top .u{color:var(--muted);font-size:14px}
 .settings-top .btn{margin-top:12px}
+.push-row{display:flex;align-items:center;gap:12px;margin:8px 16px 4px;padding:12px 14px;border-radius:14px;background:var(--field)}
+.push-row>svg{width:22px;height:22px;flex-shrink:0}
+.push-row .tx{flex:1;min-width:0;font-size:14px}
+.push-row .tx b{display:block;font-size:15px}
+.push-row .tx span{color:var(--muted);font-size:13px}
 .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;z-index:60;max-width:90vw}
 
 @media (max-width:760px){
@@ -641,6 +646,8 @@ async function enterApp(){
   await Promise.all([loadConvs(),loadSocial()]);
   subscribe();
   entering=false;
+  pushSync();
+  if(location.search)openDeepLink(location.search);
 }
 function showAuth(){
   setView('messages');
@@ -727,6 +734,7 @@ function renderProfile(){
       <div class="stat"><b>${state.convs.filter(c=>c.is_group).length}</b><span>ομάδες</span></div></div></div>
     <div class="me-info"><div class="nm">${esc(nameOf(me))}</div>${me.bio?`<div class="bio">${linkify(me.bio)}</div>`:''}</div>
     <div class="me-btns"><button class="btn btn-soft" id="editProfileBtn">Επεξεργασία προφίλ</button></div>
+    ${pushRowHTML()}
     <div class="sect">Οι φίλοι σου</div>
     <div class="lock-note">${ICON_LOCK}Μόνο εσύ βλέπεις αυτή τη λίστα</div>
     ${fr.length?fr.map(f=>`<div class="person" data-id="${f.id}" role="button">${avP(f,'sm')}
@@ -737,10 +745,11 @@ function renderProfile(){
   pane.scrollTop=keep;
   if(photo)$('myPic').onclick=()=>viewPhoto(photo);
   $('editProfileBtn').onclick=openMyProfile;
+  const pb=$('pushBtn');if(pb)pb.onclick=()=>{pb.disabled=true;(state.pushOn?pushDisable():pushEnable());};
   pane.querySelectorAll('.person').forEach(b=>b.onclick=()=>openUser(fr.find(x=>x.id===b.dataset.id)));
   pane.querySelectorAll('[data-act=msg]').forEach(b=>b.onclick=e=>{e.stopPropagation();setView('messages');startDirect(b.dataset.id);});
   const ff=$('findFriends');if(ff)ff.onclick=()=>{setView('messages');$('search').focus();};
-  $('logoutBtn').onclick=async()=>{if(!confirm('Αποσύνδεση;'))return;await sb.auth.signOut();};
+  $('logoutBtn').onclick=async()=>{if(!confirm('Αποσύνδεση;'))return;await pushDisable(false);await sb.auth.signOut();};
 }
 function directWith(uid){return state.convs.find(c=>!c.is_group&&(c.members||[]).some(m=>m.id===uid));}
 function renderFriends(){
@@ -1406,6 +1415,7 @@ async function openConv(id){
   state.activeId=id;state.msgs=[];state.hasOlder=false;
   $('placeholder').classList.add('hidden');$('chat').classList.remove('hidden');$('app').classList.add('show-chat');
   const c=activeConv();if(c)c.unread=0;
+  setUrl('?c='+id);clearNotifs('conv-'+id);
   renderHome();renderChatHead();$('messages').innerHTML='';
   const {data,error}=await sb.from('messages').select(MSG_COLS)
     .eq('conversation_id',id).order('created_at',{ascending:false}).limit(PAGE);
@@ -1417,7 +1427,7 @@ async function openConv(id){
   if(!isTouch)$('msgInput').focus();
 }
 function closeChat(){
-  state.activeId=null;state.msgs=[];
+  state.activeId=null;state.msgs=[];setUrl('');
   $('chat').classList.add('hidden');$('placeholder').classList.remove('hidden');$('app').classList.remove('show-chat');
   renderHome();
 }
@@ -1520,6 +1530,87 @@ document.addEventListener('visibilitychange',()=>{
     reloadConvs();reloadSocial();
   }
 });
+
+/* ================= PUSH NOTIFICATIONS ================= */
+const VAPID_PUBLIC='BJPqJ6hvtRDWRFnb7aHFkOlN98eLZuYk-IBD5yWVRwUgeJHsqHXzjxmirdE0cL-5DxTU-sRyCBuB2OTf8JcxmJ0';
+const pushSupported='serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
+const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+const ICON_BELL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>';
+state.pushOn=false;
+function lsGet(k){try{return localStorage.getItem(k);}catch{return null;}}
+function lsSet(k,v){try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v);}catch{}}
+function b64u(s){const b=atob((s+'='.repeat((4-s.length%4)%4)).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from(b,c=>c.charCodeAt(0));}
+function setUrl(q){try{history.replaceState(null,'',location.pathname+q);}catch{}}
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+  // a notification was tapped while the app was already open
+  navigator.serviceWorker.addEventListener('message',e=>{if(e.data&&e.data.open!=null)openDeepLink(e.data.open);});
+}
+const getReg=()=>navigator.serviceWorker.ready;
+function clearNotifs(tag){
+  if(!('serviceWorker' in navigator))return;
+  getReg().then(r=>r.getNotifications()).then(ns=>ns.forEach(n=>{if(n.data&&n.data.tag===tag)n.close();})).catch(()=>{});
+}
+function openDeepLink(u){
+  if(!state.me)return;
+  const p=new URLSearchParams(String(u).split('?')[1]||'');
+  const c=p.get('c');
+  if(c&&state.convs.some(x=>x.id===c)){setView('messages');closeSheet();openConv(c);}
+  else if(p.has('requests')){setUrl('');setView('messages');openRequests();clearNotifs('requests');}
+  else setUrl(state.activeId?'?c='+state.activeId:'');
+}
+async function subscribeDevice(){
+  const reg=await getReg();
+  const sub=(await reg.pushManager.getSubscription())||await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(VAPID_PUBLIC)});
+  const j=sub.toJSON();
+  const {error}=await sb.rpc('save_push_subscription',{p_endpoint:j.endpoint,p_p256dh:j.keys.p256dh,p_auth:j.keys.auth});
+  if(error)throw error;
+  state.pushOn=true;
+}
+// on every login: link this device's notifications to whoever is signed in
+async function pushSync(){
+  if(!pushSupported||!state.me||Notification.permission!=='granted'||lsGet('fc-push-off'))return;
+  try{await subscribeDevice();}catch(e){console.warn('push',e);}
+  renderProfile();
+}
+async function pushEnable(){
+  if(!pushSupported){renderProfile();return toast('Αυτός ο browser δεν υποστηρίζει ειδοποιήσεις');}
+  const perm=await Notification.requestPermission();
+  if(perm!=='granted'){renderProfile();return toast(perm==='denied'?'Οι ειδοποιήσεις είναι μπλοκαρισμένες από τις ρυθμίσεις':'Δεν δόθηκε άδεια');}
+  lsSet('fc-push-off',null);
+  try{await subscribeDevice();toast('Οι ειδοποιήσεις ενεργοποιήθηκαν');}
+  catch{toast('Δεν ενεργοποιήθηκαν οι ειδοποιήσεις');}
+  renderProfile();
+}
+async function pushDisable(byUser=true){
+  if(byUser)lsSet('fc-push-off','1');
+  state.pushOn=false;
+  if(pushSupported){
+    try{
+      const reg=await getReg();const sub=await reg.pushManager.getSubscription();
+      if(sub){await sb.rpc('delete_push_subscription',{p_endpoint:sub.endpoint});await sub.unsubscribe();}
+    }catch{}
+  }
+  if(byUser){toast('Οι ειδοποιήσεις απενεργοποιήθηκαν');renderProfile();}
+}
+function pushRowHTML(){
+  let title='Ειδοποιήσεις',sub,btn='';
+  if(!pushSupported){
+    sub=isIOS&&!isStandalone
+      ?'Στο iPhone: πάτα Κοινοποίηση → «Προσθήκη στην οθόνη Αφετηρίας» και άνοιξε το FriendlyChat από το εικονίδιο.'
+      :'Αυτός ο browser δεν υποστηρίζει ειδοποιήσεις.';
+  }else if(Notification.permission==='denied'){
+    sub='Είναι μπλοκαρισμένες. Επίτρεψέ τες από τις ρυθμίσεις του browser ή του κινητού.';
+  }else if(state.pushOn){
+    sub='Ενεργές σε αυτή τη συσκευή: μηνύματα και αιτήματα φιλίας.';
+    btn=`<button class="btn btn-soft btn-sm" id="pushBtn">Απενεργοποίηση</button>`;
+  }else{
+    sub='Μάθε αμέσως για νέα μηνύματα και αιτήματα, ακόμα κι αν η εφαρμογή είναι κλειστή.';
+    btn=`<button class="btn btn-primary btn-sm" id="pushBtn">Ενεργοποίηση</button>`;
+  }
+  return `<div class="push-row">${ICON_BELL}<div class="tx"><b>${title}</b><span>${sub}</span></div>${btn}</div>`;
+}
 </script>
 </body>
 </html>
