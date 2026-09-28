@@ -306,12 +306,22 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;backgrou
 .settings-top h3{margin:10px 0 2px;font-size:19px}
 .settings-top .u{color:var(--muted);font-size:14px}
 .settings-top .btn{margin-top:12px}
-.push-row{display:flex;align-items:center;gap:12px;margin:8px 16px 4px;padding:12px 14px;border-radius:14px;background:var(--field)}
-.push-row>svg{width:22px;height:22px;flex-shrink:0}
-.push-row .tx{flex:1;min-width:0;font-size:14px}
-.push-row .tx b{display:block;font-size:15px}
-.push-row .tx span{color:var(--muted);font-size:13px}
-.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;z-index:60;max-width:90vw}
+.set-group{margin:4px 16px 8px;border-radius:14px;background:var(--field);overflow:hidden}
+.set-item{display:flex;align-items:center;gap:12px;padding:12px 14px;width:100%;text-align:left}
+.set-item+.set-item{border-top:1px solid var(--line)}
+.set-item>svg{width:22px;height:22px;flex-shrink:0}
+.set-item .tx{flex:1;min-width:0}
+.set-item .tx b{display:block;font-size:15px;font-weight:600}
+.set-item .tx span{display:block;color:var(--muted);font-size:13px;margin-top:1px}
+.set-item.danger{color:var(--danger)}
+button.set-item:active{background:var(--hover)}
+.switch{position:relative;width:51px;height:31px;flex-shrink:0;border-radius:999px;background:var(--line);transition:background .2s}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.25);transition:transform .2s}
+.switch.on{background:var(--ok)}
+.switch.on::after{transform:translateX(20px)}
+.switch:disabled{opacity:.45;cursor:default}
+.switch.busy{opacity:.6}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;z-index:60;max-width:90vw}
 
 @media (max-width:760px){
   aside{width:100%;border-right:0}
@@ -775,18 +785,21 @@ function renderProfile(){
       <div class="stat"><b>${state.convs.filter(c=>c.is_group).length}</b><span>ομάδες</span></div></div></div>
     <div class="me-info"><div class="nm">${esc(nameOf(me))}</div>${me.bio?`<div class="bio">${linkify(me.bio)}</div>`:''}</div>
     <div class="me-btns"><button class="btn btn-soft" id="editProfileBtn">Επεξεργασία προφίλ</button></div>
-    ${pushRowHTML()}
+    ${settingsHTML()}
     <div class="sect">Οι φίλοι σου</div>
     <div class="lock-note">${ICON_LOCK}Μόνο εσύ βλέπεις αυτή τη λίστα</div>
     ${fr.length?fr.map(f=>`<div class="person" data-id="${f.id}" role="button">${avP(f,'sm')}
         <div class="n"><b>${esc(nameOf(f))}</b><span>@${esc(f.username)}</span></div>
         <div class="actions"><button class="btn btn-soft btn-sm" data-act="msg" data-id="${f.id}">Μήνυμα</button></div></div>`).join('')
       :`<div class="empty" style="padding-top:14px"><b>Δεν έχεις φίλους ακόμα</b>Ψάξε κάποιον με το όνομα χρήστη του.<br><button class="btn btn-primary btn-sm" id="findFriends" style="margin-top:12px">Βρες φίλους</button></div>`}
-    <div style="text-align:center;margin:26px 0 20px"><button class="btn-danger" id="logoutBtn">Αποσύνδεση</button></div>`;
+    <div style="height:24px"></div>`;
   pane.scrollTop=keep;
   if(photo)$('myPic').onclick=()=>viewPhoto(photo);
   $('editProfileBtn').onclick=openMyProfile;
-  const pb=$('pushBtn');if(pb)pb.onclick=()=>{pb.disabled=true;(state.pushOn?pushDisable():pushEnable());};
+  const pb=$('pushSwitch');if(pb)pb.onclick=async()=>{
+    if(state.pushBusy)return;state.pushBusy=true;pb.classList.add('busy');pb.classList.toggle('on',!state.pushOn);
+    try{await(state.pushOn?pushDisable():pushEnable());}finally{state.pushBusy=false;renderProfile();}
+  };
   pane.querySelectorAll('.person').forEach(b=>b.onclick=()=>openUser(fr.find(x=>x.id===b.dataset.id)));
   pane.querySelectorAll('[data-act=msg]').forEach(b=>b.onclick=e=>{e.stopPropagation();setView('messages');startDirect(b.dataset.id);});
   const ff=$('findFriends');if(ff)ff.onclick=()=>{setView('messages');$('search').focus();};
@@ -1641,22 +1654,24 @@ async function pushDisable(byUser=true){
   }
   if(byUser){toast('Οι ειδοποιήσεις απενεργοποιήθηκαν');renderProfile();}
 }
-function pushRowHTML(){
-  let title='Ειδοποιήσεις',sub,btn='';
+const ICON_LOGOUT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>';
+function settingsHTML(){
+  let sub,canToggle=true;
   if(!pushSupported){
+    canToggle=false;
     sub=isIOS&&!isStandalone
       ?'Στο iPhone: πάτα Κοινοποίηση → «Προσθήκη στην οθόνη Αφετηρίας» και άνοιξε το FriendlyChat από το εικονίδιο.'
       :'Αυτός ο browser δεν υποστηρίζει ειδοποιήσεις.';
   }else if(Notification.permission==='denied'){
-    sub='Είναι μπλοκαρισμένες. Επίτρεψέ τες από τις ρυθμίσεις του browser ή του κινητού.';
-  }else if(state.pushOn){
-    sub='Ενεργές σε αυτή τη συσκευή: μηνύματα και αιτήματα φιλίας.';
-    btn=`<button class="btn btn-soft btn-sm" id="pushBtn">Απενεργοποίηση</button>`;
-  }else{
-    sub='Μάθε αμέσως για νέα μηνύματα και αιτήματα, ακόμα κι αν η εφαρμογή είναι κλειστή.';
-    btn=`<button class="btn btn-primary btn-sm" id="pushBtn">Ενεργοποίηση</button>`;
-  }
-  return `<div class="push-row">${ICON_BELL}<div class="tx"><b>${title}</b><span>${sub}</span></div>${btn}</div>`;
+    canToggle=false;sub='Είναι μπλοκαρισμένες. Επίτρεψέ τες από τις ρυθμίσεις του browser ή του κινητού.';
+  }else sub=state.pushOn?'Νέα μηνύματα και αιτήματα φιλίας':'Κλειστές σε αυτή τη συσκευή';
+  const on=state.pushOn&&canToggle;
+  return `<div class="sect">Ρυθμίσεις</div>
+    <div class="set-group">
+      <div class="set-item">${ICON_BELL}<div class="tx"><b>Ειδοποιήσεις</b><span>${sub}</span></div>
+        <button class="switch${on?' on':''}" id="pushSwitch" role="switch" aria-checked="${on}" aria-label="Ειδοποιήσεις" ${canToggle?'':'disabled'}></button></div>
+      <button class="set-item danger" id="logoutBtn">${ICON_LOGOUT}<div class="tx"><b>Αποσύνδεση</b></div></button>
+    </div>`;
 }
 </script>
 </body>
