@@ -83,7 +83,8 @@ textarea.inp{resize:none;line-height:1.4}
 .link-row{text-align:center;margin-top:14px}
 
 /* ---------- Layout ---------- */
-#app{position:absolute;inset:0;display:flex;overflow:hidden}
+/* the app follows the *visible* screen, so the keyboard never leaves a gap or hides the composer */
+#app{position:absolute;left:0;right:0;top:var(--vvt,0px);height:var(--vvh,100%);display:flex;overflow:hidden}
 aside{width:400px;flex-shrink:0;border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:var(--panel)}
 .top{display:flex;align-items:center;gap:8px;padding:12px 16px 8px;padding-top:max(12px,env(safe-area-inset-top))}
 .top .uname{flex:1;text-align:center;font-weight:800;font-size:22px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -189,8 +190,13 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;backgrou
 .bubble a{color:inherit;text-decoration:underline}
 .stamp{font-size:11px;color:var(--muted);margin:3px 8px 0}
 .older{align-self:center;margin-bottom:6px;font-size:13px}
-.composer{display:flex;align-items:flex-end;gap:8px;padding:8px 12px;padding-bottom:max(10px,env(safe-area-inset-bottom))}
-.composer .box{flex:1;display:flex;align-items:flex-end;background:var(--field);border-radius:24px;padding:4px 4px 4px 16px}
+.composer{display:flex;align-items:flex-end;gap:8px;padding:6px 10px;padding-bottom:max(8px,calc(env(safe-area-inset-bottom) - 14px))}
+/* keyboard open: no home-bar space needed, sit right on the keyboard */
+.kb-open .composer{padding-bottom:6px}
+.composer .box{flex:1;display:flex;align-items:flex-end;background:var(--field);border-radius:24px;padding:4px 4px 4px 4px}
+.ph-btn{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;color:var(--chat-accent,var(--accent));margin-right:4px}
+.ph-btn svg{width:24px;height:24px}
+.ph-btn:disabled{opacity:.4}
 .composer textarea{flex:1;resize:none;max-height:140px;border:0;background:none;outline:none;line-height:1.35;padding:8px 0}
 .send{height:36px;padding:0 14px;border-radius:18px;color:var(--accent);font-weight:700}
 .send:disabled{opacity:.35;cursor:default}
@@ -297,6 +303,8 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;backgrou
 .swatch i{width:48px;height:48px;border-radius:50%;display:block;box-shadow:inset 0 0 0 1px rgba(128,128,128,.25)}
 .swatch.on i{box-shadow:0 0 0 3px var(--panel),0 0 0 5px var(--text)}
 .swatch.on{color:var(--text);font-weight:600}
+.swatch i.bg-photo{display:grid;place-items:center;background:var(--field) center/cover no-repeat;color:var(--muted)}
+.swatch i.bg-photo svg{width:22px;height:22px}
 .bg-row{display:flex;align-items:center;gap:12px;padding:4px 16px}
 .bg-thumb{width:54px;height:80px;border-radius:10px;background:var(--field) center/cover no-repeat;flex-shrink:0;display:grid;place-items:center;color:var(--muted);font-size:11px;text-align:center}
 .bg-row .col{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
@@ -321,6 +329,64 @@ button.set-item:active{background:var(--hover)}
 .switch.on::after{transform:translateX(20px)}
 .switch:disabled{opacity:.45;cursor:default}
 .switch.busy{opacity:.6}
+/* reactions */
+.bubble{position:relative}
+@media (pointer:coarse){.bubble{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}}
+.row.has-rx{margin-bottom:4px}
+.reacts{position:relative;z-index:1;margin-top:-8px;display:inline-flex;align-items:center;gap:1px;background:var(--field);border:2px solid var(--bg);border-radius:999px;padding:1px 6px;font-size:13px;line-height:18px}
+.reacts span{font-size:12px;color:var(--muted);margin-left:3px;font-weight:600}
+.row.mine .reacts{margin-right:10px}
+.row.theirs .reacts{margin-left:10px}
+.messages.has-bg .reacts{border-color:transparent;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.heart-pop{position:absolute;left:50%;top:50%;font-size:40px;pointer-events:none;transform:translate(-50%,-50%) scale(0);animation:heartpop .7s ease-out forwards;z-index:2}
+@keyframes heartpop{0%{transform:translate(-50%,-50%) scale(0);opacity:0}25%{transform:translate(-50%,-50%) scale(1.25);opacity:1}55%{transform:translate(-50%,-50%) scale(.95)}100%{transform:translate(-50%,-70%) scale(1);opacity:0}}
+.rx-overlay{position:fixed;inset:0;z-index:75;background:rgba(0,0,0,.35);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);animation:fadein .12s}
+@keyframes fadein{from{opacity:0}}
+.rx-clone{position:fixed;margin:0;pointer-events:none}
+.rx-pop{position:fixed;display:flex;flex-direction:column;gap:6px;align-items:stretch}
+.rx-bar{display:flex;align-items:center;gap:2px;background:var(--panel);border-radius:999px;padding:5px 6px;box-shadow:0 6px 24px rgba(0,0,0,.25);animation:rxin .16s ease-out}
+@keyframes rxin{from{transform:scale(.85);opacity:0}}
+.rx-bar button{width:40px;height:40px;border-radius:50%;font-size:27px;display:grid;place-items:center;transition:transform .12s}
+.rx-bar button:active{transform:scale(1.25)}
+.rx-bar button.on{background:var(--field)}
+.rx-bar .more{font-size:22px;color:var(--muted);background:var(--field);width:34px;height:34px;margin-left:2px}
+.rx-more{display:grid;grid-template-columns:repeat(6,1fr);gap:2px;background:var(--panel);border-radius:18px;padding:8px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+.rx-more[hidden]{display:none}
+.rx-more button{font-size:26px;height:44px;border-radius:12px}
+.rx-more button.on{background:var(--field)}
+.rx-menu{position:fixed;min-width:180px;background:var(--panel);border-radius:14px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+.rx-menu button{display:flex;justify-content:space-between;align-items:center;width:100%;padding:12px 16px;font-weight:600;font-size:15px}
+.rx-menu button+button{border-top:1px solid var(--line)}
+.rx-menu svg{width:20px;height:20px}
+.rx-who{display:flex;align-items:center;gap:12px;padding:8px 16px;width:100%;text-align:left}
+.rx-who .n{flex:1;min-width:0}
+.rx-who .n b{display:block;font-weight:600}
+.rx-who .n span{font-size:13px;color:var(--muted)}
+.rx-who .e{font-size:26px}
+/* view-once photos */
+.bubble.photo{display:flex;align-items:center;gap:10px;padding:9px 16px 9px 10px;cursor:default}
+.bubble.photo .pi{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.22);flex-shrink:0}
+.row.theirs .bubble.photo .pi{background:rgba(128,128,128,.18)}
+.bubble.photo .pi svg{width:19px;height:19px}
+.bubble.photo b{display:block;font-size:15px}
+.bubble.photo small{display:block;font-size:12.5px;opacity:.8}
+.bubble.photo.fresh{cursor:pointer}
+.row.theirs .bubble.photo.fresh{background:var(--mine);color:var(--mine-ink)}
+.row.theirs .bubble.photo.fresh .pi{background:rgba(255,255,255,.22)}
+.bubble.photo.done{opacity:.6}
+.once-viewer{position:fixed;inset:0;z-index:80;background:#000;color:#fff;display:flex;flex-direction:column;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.once-viewer .ov-top{display:flex;align-items:center;gap:10px;padding:12px 16px;padding-top:max(12px,env(safe-area-inset-top))}
+.once-viewer .ov-top b{flex:1;font-size:15px}
+.once-viewer .ov-top button{font-size:30px;line-height:1;width:40px;height:40px}
+.once-viewer .ov-img{flex:1;min-height:0;display:grid;place-items:center;padding:0 8px}
+.once-viewer img{max-width:100%;max-height:100%;object-fit:contain;pointer-events:none;-webkit-user-drag:none}
+.once-viewer .ov-note{text-align:center;font-size:13px;color:#bbb;padding:12px 16px max(16px,env(safe-area-inset-bottom))}
+.spin{width:34px;height:34px;border-radius:50%;border:3px solid rgba(255,255,255,.25);border-top-color:#fff;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.send-photo{display:flex;flex-direction:column;align-items:center;gap:12px;padding:0 16px}
+.send-photo img{max-width:100%;max-height:52dvh;border-radius:14px;object-fit:contain;background:var(--field)}
+.send-photo .note{display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--muted)}
+.send-photo .note svg{width:16px;height:16px}
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;z-index:60;max-width:90vw}
 
 @media (max-width:760px){
@@ -364,7 +430,6 @@ button.set-item:active{background:var(--hover)}
       <div class="pw-wrap"><input class="inp" id="liPass" type="password" autocomplete="current-password" required><button type="button" class="eye" aria-label="Εμφάνιση κωδικού" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="slash" d="M3 3l18 18"/></svg></button></div>
       <label class="remember"><input type="checkbox" id="rememberMe" checked>Να με θυμάσαι</label>
       <button class="btn btn-primary btn-block" type="submit">Σύνδεση</button>
-      <div class="link-row"><button type="button" class="btn-link" id="forgotBtn">Ξέχασα τον κωδικό μου</button></div>
     </form>
 
     <form id="signupForm" class="hidden" autocomplete="on">
@@ -456,6 +521,8 @@ button.set-item:active{background:var(--hover)}
       <div class="messages" id="messages"></div>
       <form class="composer" id="composer">
         <div class="box">
+          <button type="button" class="ph-btn" id="photoBtn" aria-label="Στείλε φωτογραφία"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.8"/><path d="m21 15-5-5L5 21"/></svg></button>
+          <input type="file" id="photoFile" accept="image/*" hidden>
           <textarea id="msgInput" rows="1" placeholder="Μήνυμα…" maxlength="4000"></textarea>
           <button class="send" id="sendBtn" type="submit" disabled>Αποστολή</button>
         </div>
@@ -483,7 +550,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {auth:{storage:auth
 
 const USERNAME_RE = /^[a-z0-9_]{3,24}$/;
 const PAGE = 50;
-const MSG_COLS = 'id,conversation_id,sender_id,content,kind,created_at';
+const MSG_COLS = 'id,conversation_id,sender_id,content,kind,created_at,reactions:message_reactions(user_id,emoji)';
 const BIO_MAX = 150;
 const PROFILE_COLS = 'id,username,display_name,avatar_url,bio';
 const $ = (id) => document.getElementById(id);
@@ -495,6 +562,7 @@ const state = {
   friends: [],
   incoming: [],   // profiles who sent me a request
   outgoing: [],   // profiles I sent a request to
+  views: new Map(), // photo message id -> Set of user ids who opened it
   tab: 'chats',
   activeId: null,
   msgs: [],
@@ -557,6 +625,18 @@ const THEMES={
   midnight:{name:'Μεσάνυχτα',mine:'linear-gradient(135deg,#243b55,#141e30)',accent:'#5b7bb0'},
   mono:{name:'Ασπρόμαυρο',mine:'var(--text)',ink:'var(--bg)',accent:'var(--text)'},
 };
+// chat backgrounds (separate from the bubble colour)
+const BGS={
+  sky:{name:'Ουρανός',bg:'linear-gradient(160deg,#a1c4fd,#c2e9fb)'},
+  peach:{name:'Ροδάκινο',bg:'linear-gradient(160deg,#ffecd2,#fcb69f)'},
+  mint:{name:'Μέντα',bg:'linear-gradient(160deg,#d4fc79,#96e6a1)'},
+  lilac:{name:'Λιλά',bg:'linear-gradient(160deg,#e0c3fc,#8ec5fc)'},
+  sand:{name:'Άμμος',bg:'linear-gradient(160deg,#fdfcfb,#e2d1c3)'},
+  rose:{name:'Τριαντάφυλλο',bg:'linear-gradient(160deg,#fbc2eb,#a6c1ee)'},
+  night:{name:'Νύχτα',bg:'linear-gradient(160deg,#0f2027,#203a43,#2c5364)'},
+  aurora:{name:'Σέλας',bg:'linear-gradient(160deg,#0b3d2e,#1f6f5c,#6a4c93)'},
+  dusk:{name:'Σούρουπο',bg:'linear-gradient(160deg,#2c3e50,#fd746c)'},
+};
 function themeSwatch(k){const t=THEMES[k];return t.sw||t.mine||'var(--accent)';}
 
 /* ---- system messages ("X changed the theme") ---- */
@@ -566,7 +646,7 @@ function sysText(c,m){
   const who=mine?'Εσύ':(actor?memberFirst(actor):'Κάποιος');
   const v=(me,other)=>mine?me:other;
   const s=String(m.content||'');
-  if(s.startsWith('theme:')){const t=THEMES[s.slice(6)];return `${who} ${v('άλλαξες','άλλαξε')} το θέμα σε «${t?t.name:'…'}»`;}
+  if(s.startsWith('theme:')){const t=THEMES[s.slice(6)];return `${who} ${v('άλλαξες','άλλαξε')} το χρώμα της φούσκας σε «${t?t.name:'…'}»`;}
   if(s==='bg:set')return `${who} ${v('άλλαξες','άλλαξε')} το φόντο της συνομιλίας`;
   if(s==='bg:removed')return `${who} ${v('αφαίρεσες','αφαίρεσε')} το φόντο`;
   try{
@@ -595,6 +675,7 @@ function relation(uid){
 }
 const ICON_TIMER='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/></svg>';
 const TTL_MS=24*3600e3;
+const ICON_IMG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.8"/><path d="m21 15-5-5L5 21"/></svg>';
 const ICON_PLUS='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
 const ICON_CAM='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3Z"/><circle cx="12" cy="13" r="3.5"/></svg>';
 
@@ -609,14 +690,18 @@ function setTab(tab){
 }
 document.querySelectorAll('#authTabs button').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
 // show / hide password
-document.querySelectorAll('.pw-wrap .eye').forEach(b=>{
-  b.addEventListener('pointerdown',e=>e.preventDefault()); // keep the keyboard open
-  b.onclick=()=>{
-    const i=b.previousElementSibling,show=i.type==='password';
-    i.type=show?'text':'password';b.classList.toggle('on',show);
-    b.setAttribute('aria-label',show?'Απόκρυψη κωδικού':'Εμφάνιση κωδικού');
-  };
-});
+function wireEyes(root=document){
+  root.querySelectorAll('.pw-wrap .eye').forEach(b=>{
+    b.addEventListener('pointerdown',e=>e.preventDefault()); // keep the keyboard open
+    b.onclick=()=>{
+      const i=b.previousElementSibling,show=i.type==='password';
+      i.type=show?'text':'password';b.classList.toggle('on',show);
+      b.setAttribute('aria-label',show?'Απόκρυψη κωδικού':'Εμφάνιση κωδικού');
+    };
+  });
+}
+wireEyes();
+const EYE_BTN=document.querySelector('.pw-wrap .eye').outerHTML;
 // remembered email + checkbox state
 (()=>{const em=lsGet('fc-email');if(em)$('liEmail').value=em;if(lsGet('fc-remember')==='0')$('rememberMe').checked=false;})();
 
@@ -641,7 +726,7 @@ $('signupForm').addEventListener('submit',async e=>{
   const {data:free}=await sb.rpc('username_available',{u:username});
   if(free===false)return showAuthMsg('Το όνομα χρήστη χρησιμοποιείται ήδη. Διάλεξε άλλο.');
   $('signupBtn').disabled=true;
-  const {data,error}=await sb.auth.signUp({email,password,options:{data:{username},emailRedirectTo:location.origin+location.pathname}});
+  const {data,error}=await sb.auth.signUp({email,password,options:{data:{username}}});
   $('signupBtn').disabled=false;
   if(error){
     const m=error.message||'';
@@ -653,7 +738,7 @@ $('signupForm').addEventListener('submit',async e=>{
   if(data?.user&&Array.isArray(data.user.identities)&&data.user.identities.length===0)return showAuthMsg('Υπάρχει ήδη λογαριασμός με αυτό το email.');
   if(!data.session){
     $('signupForm').reset();$('userHint').className='hint';$('userHint').textContent='';
-    setTab('login');showAuthMsg('Σου στείλαμε email επιβεβαίωσης. Πάτα τον σύνδεσμο (κοίτα και στα spam) και μετά συνδέσου.','info');
+    setTab('login');showAuthMsg('Ο λογαριασμός δημιουργήθηκε. Συνδέσου με το email και τον κωδικό σου.','info');
   }
 });
 $('loginForm').addEventListener('submit',async e=>{
@@ -665,17 +750,10 @@ $('loginForm').addEventListener('submit',async e=>{
   if(error){
     const m=error.message||'';
     if(/invalid login/i.test(m))return showAuthMsg('Λάθος email ή κωδικός.');
-    if(/not confirmed/i.test(m))return showAuthMsg('Δεν έχεις επιβεβαιώσει ακόμα το email σου. Δες τα εισερχόμενα (και τα spam).');
+    if(/not confirmed/i.test(m))return showAuthMsg('Ο λογαριασμός δεν έχει ενεργοποιηθεί ακόμα. Δοκίμασε ξανά σε λίγο.');
     return showAuthMsg(m);
   }
 });
-$('forgotBtn').onclick=async()=>{
-  const email=$('liEmail').value.trim();
-  if(!email)return showAuthMsg('Γράψε πρώτα το email σου στο πεδίο από πάνω.');
-  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
-  if(error)return showAuthMsg(error.message);
-  showAuthMsg('Αν υπάρχει λογαριασμός, θα λάβεις email για νέο κωδικό.','info');
-};
 $('resetForm').addEventListener('submit',async e=>{
   e.preventDefault();
   const {error}=await sb.auth.updateUser({password:$('newPass').value});
@@ -796,6 +874,7 @@ function renderProfile(){
   pane.scrollTop=keep;
   if(photo)$('myPic').onclick=()=>viewPhoto(photo);
   $('editProfileBtn').onclick=openMyProfile;
+  $('pwBtn').onclick=openChangePassword;
   const pb=$('pushSwitch');if(pb)pb.onclick=async()=>{
     if(state.pushBusy)return;state.pushBusy=true;pb.classList.add('busy');pb.classList.toggle('on',!state.pushOn);
     try{await(state.pushOn?pushDisable():pushEnable());}finally{state.pushBusy=false;renderProfile();}
@@ -837,10 +916,11 @@ function convRowHTML(c){
   let text;
   if(unread)text=unread===1?'1 νέο μήνυμα':(unread>9?'9+':unread)+' νέα μηνύματα';
   else if(c.last_message!=null){
+    const lm=c.last_kind==='photo'?'📷 Φωτογραφία':c.last_message;
     if(c.last_kind==='system')text=sysText(c,{sender_id:c.last_sender,content:c.last_message});
-    else if(c.last_sender===state.me.id)text='Εσύ: '+c.last_message;
-    else if(c.is_group){const s=(c.members||[]).find(m=>m.id===c.last_sender);text=(s?memberFirst(s)+': ':'')+c.last_message;}
-    else text=c.last_message;
+    else if(c.last_sender===state.me.id)text='Εσύ: '+lm;
+    else if(c.is_group){const s=(c.members||[]).find(m=>m.id===c.last_sender);text=(s?memberFirst(s)+': ':'')+lm;}
+    else text=lm;
   }else text=c.is_group?'Η ομάδα δημιουργήθηκε':'Πείτε γεια 👋';
   return `<button class="conv${c.id===state.activeId?' on':''}${unread?' unread':''}" data-id="${c.id}">
     ${convAvatar(c)}
@@ -1110,6 +1190,9 @@ function applyChatLook(c){
   if(t.ink)chat.style.setProperty('--mine-ink',t.ink);else chat.style.removeProperty('--mine-ink');
   if(t.accent)chat.style.setProperty('--chat-accent',t.accent);else chat.style.removeProperty('--chat-accent');
   const box=$('messages');
+  if(!c.background_path&&BGS[c.background_color]){
+    box.dataset.bg='c:'+c.background_color;box.style.backgroundImage=BGS[c.background_color].bg;box.classList.add('has-bg');return;
+  }
   if(!c.background_path){box.classList.remove('has-bg');box.style.backgroundImage='';box.dataset.bg='';return;}
   if(box.dataset.bg===c.background_path&&box.classList.contains('has-bg'))return;
   box.dataset.bg=c.background_path;
@@ -1142,13 +1225,15 @@ function afterLookChange(){renderHome();if(state.activeId){renderChatHead();rend
 // Sections shared by 1-to-1 chats and groups
 function customHTML(c,editing){
   const cur=c.theme||'default';
-  let h=`<div class="sect">Θέμα</div><div class="swatches">`+
+  let h=`<div class="sect">Χρώμα φούσκας</div><div class="swatches">`+
     Object.keys(THEMES).map(k=>`<button class="swatch${cur===k?' on':''}" data-theme="${k}"><i style="background:${themeSwatch(k)}"></i>${esc(THEMES[k].name)}</button>`).join('')+`</div>`;
-  h+=`<div class="sect">Φόντο</div><div class="bg-row"><div class="bg-thumb" id="bgThumb">${c.background_path?'':'Χωρίς<br>φόντο'}</div>
-    <div class="col"><button class="btn-link" id="bgPick">${c.background_path?'Αλλαγή φωτογραφίας':'Διάλεξε φωτογραφία'}</button>
-    ${c.background_path?'<button class="btn-danger" id="bgRemove">Αφαίρεση φόντου</button>':''}
-    <span class="hint" style="margin:0">Το φόντο και το θέμα τα βλέπουν όλοι στη συνομιλία.</span></div>
-    <input type="file" id="bgFile" accept="image/*" hidden></div>`;
+  const bgKey=c.background_path?'photo':(BGS[c.background_color]?c.background_color:'none');
+  h+=`<div class="sect">Φόντο</div><div class="swatches">
+    <button class="swatch${bgKey==='none'?' on':''}" data-bg="none"><i style="background:var(--bg);box-shadow:inset 0 0 0 1px var(--line)"></i>Κανένα</button>`+
+    Object.keys(BGS).map(k=>`<button class="swatch${bgKey===k?' on':''}" data-bg="${k}"><i style="background:${BGS[k].bg}"></i>${esc(BGS[k].name)}</button>`).join('')+
+    `<button class="swatch${bgKey==='photo'?' on':''}" data-bg="photo" id="bgPick"><i class="bg-photo" id="bgThumb">${ICON_IMG}</i>${c.background_path?'Αλλαγή':'Φωτογραφία'}</button></div>
+    <input type="file" id="bgFile" accept="image/*" hidden>
+    <p class="hint" style="margin:2px 16px 0">Το χρώμα και το φόντο τα βλέπουν όλοι στη συνομιλία.</p>`;
   h+=`<div class="sect">Ψευδώνυμα</div>`;
   h+=(c.members||[]).map(m=>{
     const me=m.id===state.me.id;
@@ -1163,14 +1248,23 @@ function customHTML(c,editing){
 }
 function wireCustom(c,redraw,setEditing){
   const body=$('sheetBody');
-  body.querySelectorAll('.swatch').forEach(b=>b.onclick=async()=>{
+  body.querySelectorAll('.swatch[data-theme]').forEach(b=>b.onclick=async()=>{
     const k=b.dataset.theme;if((c.theme||'default')===k)return;
     const prev=c.theme;c.theme=k;applyChatLook(c);redraw();
     const {error}=await sb.rpc('set_conversation_theme',{conv:c.id,new_theme:k});
     if(error){c.theme=prev;applyChatLook(c);redraw();toast('Δεν άλλαξε το θέμα');}
   });
-  if(c.background_path)bgUrl(c.background_path).then(u=>{const t=$('bgThumb');if(u&&t)t.style.backgroundImage=`url("${u}")`;});
+  if(c.background_path)bgUrl(c.background_path).then(u=>{const t=$('bgThumb');if(u&&t){t.style.backgroundImage=`url("${u}")`;t.innerHTML='';}});
   $('bgPick').onclick=()=>$('bgFile').click();
+  body.querySelectorAll('.swatch[data-bg]:not([data-bg=photo])').forEach(b=>b.onclick=async()=>{
+    const k=b.dataset.bg==='none'?null:b.dataset.bg;
+    if(!c.background_path&&(c.background_color||null)===k)return;
+    const prev={p:c.background_path,c:c.background_color};
+    c.background_color=k;c.background_path=null;applyChatLook(c);redraw();
+    const {error}=await sb.rpc('set_conversation_bg_color',{conv:c.id,color:k});
+    if(error){c.background_path=prev.p;c.background_color=prev.c;applyChatLook(c);redraw();return toast('Δεν άλλαξε το φόντο');}
+    if(prev.p)clearChatBgs(c.id);
+  });
   $('bgFile').onchange=async e=>{
     const f=e.target.files[0];e.target.value='';if(!f)return;
     if(!f.type.startsWith('image/'))return toast('Διάλεξε μια εικόνα');
@@ -1183,14 +1277,8 @@ function wireCustom(c,redraw,setEditing){
       const {error}=await sb.rpc('set_conversation_background',{conv:c.id,path});
       if(error)throw error;
       clearChatBgs(c.id,path);
-      c.background_path=path;applyChatLook(c);redraw();toast('Το φόντο άλλαξε');
+      c.background_path=path;c.background_color=null;applyChatLook(c);redraw();toast('Το φόντο άλλαξε');
     }catch{toast('Το φόντο δεν ανέβηκε');redraw();}
-  };
-  const rm=$('bgRemove');if(rm)rm.onclick=async()=>{
-    if(!confirm('Αφαίρεση φόντου για όλους στη συνομιλία;'))return;
-    const {error}=await sb.rpc('set_conversation_background',{conv:c.id,path:null});
-    if(error)return toast('Κάτι πήγε στραβά');
-    clearChatBgs(c.id);c.background_path=null;applyChatLook(c);redraw();
   };
   body.querySelectorAll('.person.nick').forEach(b=>b.onclick=()=>{setEditing(b.dataset.id);redraw();const i=$('nickInp');i.focus();i.select();});
   const save=$('nickSave');
@@ -1471,10 +1559,14 @@ async function openConv(id){
   const c=activeConv();if(c)c.unread=0;
   setUrl('?c='+id);clearNotifs('conv-'+id);
   renderHome();renderChatHead();$('messages').innerHTML='';
-  const {data,error}=await sb.from('messages').select(MSG_COLS)
-    .eq('conversation_id',id).order('created_at',{ascending:false}).limit(PAGE);
+  state.views=new Map();
+  const [{data,error},{data:views}]=await Promise.all([
+    sb.from('messages').select(MSG_COLS).eq('conversation_id',id).order('created_at',{ascending:false}).limit(PAGE),
+    sb.from('photo_views').select('message_id,user_id').eq('conversation_id',id)
+  ]);
   if(state.activeId!==id)return;
   if(error){toast('Σφάλμα φόρτωσης μηνυμάτων');return;}
+  (views||[]).forEach(v=>addView(v.message_id,v.user_id));
   state.msgs=(data||[]).reverse();state.hasOlder=(data||[]).length===PAGE;
   renderMessages(true);
   sb.rpc('mark_read',{conv:id});
@@ -1519,9 +1611,13 @@ function renderMessages(scrollBottom){
     const last=!next||next.kind==='system'||next.sender_id!==m.sender_id||!sameDay(next.created_at,m.created_at)||(new Date(next.created_at)-new Date(m.created_at))>gap;
     const s=members.get(m.sender_id);
     if(m.kind==='system'){html+=`<div class="sys">${esc(sysText(c,m))}</div>`;return;}
-    html+=`<div class="row ${mine?'mine':'theirs'}${first?' first':''}${last?' last':''}">`+
+    const rx=m.reactions||[];
+    const photo=m.kind==='photo'?photoBubble(m,mine,c):null;
+    html+=`<div class="row ${mine?'mine':'theirs'}${first?' first':''}${last?' last':''}${rx.length?' has-rx':''}">`+
       (c?.is_group&&!mine&&first?`<div class="sender">${esc(s?memberName(s):'Πρώην μέλος')}</div>`:'')+
-      `<div class="bubble">${linkify(m.content)}</div>`+(last?`<div class="stamp">${fmtTime(m.created_at)}</div>`:'')+`</div>`;
+      (photo?`<div class="bubble photo${photo.cls}" data-id="${m.id}"${photo.open?' data-open="1"':''}>${photo.html}</div>`
+            :`<div class="bubble" data-id="${m.id}">${linkify(m.content)}</div>`)+
+      reactsHTML(m)+(last?`<div class="stamp">${fmtTime(m.created_at)}</div>`:'')+`</div>`;
   });
   box.innerHTML=html;
   const ob=$('olderBtn');if(ob)ob.onclick=loadOlder;
@@ -1551,7 +1647,7 @@ $('composer').addEventListener('submit',async e=>{
 function bumpConv(m){
   const c=state.convs.find(c=>c.id===m.conversation_id);
   if(!c)return reloadConvs();
-  c.last_message=m.content;c.last_sender=m.sender_id;c.last_message_at=m.created_at;
+  c.last_message=m.content;c.last_kind=m.kind;c.last_sender=m.sender_id;c.last_message_at=m.created_at;
   state.convs.sort((a,b)=>new Date(b.last_message_at)-new Date(a.last_message_at));
   renderHome();
 }
@@ -1564,10 +1660,18 @@ function subscribe(){
       if(m.conversation_id===state.activeId){
         appendMessage(m);
         if(document.visibilityState==='visible')sb.rpc('mark_read',{conv:m.conversation_id});
-      }else if(m.sender_id!==state.me.id){
+      }else if(m.sender_id!==state.me.id&&m.kind!=='system'){
         const c=state.convs.find(c=>c.id===m.conversation_id);if(c)c.unread=(c.unread||0)+1;
       }
       bumpConv(m);
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'message_reactions'},({new:n,old:o})=>{
+      const id=(n&&n.message_id)||(o&&o.message_id);
+      if(state.msgs.some(x=>x.id===id))refreshReactions(id);
+    })
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'photo_views'},({new:v})=>{
+      if(v.conversation_id!==state.activeId)return;
+      addView(v.message_id,v.user_id);renderMessages(false);
     })
     .on('postgres_changes',{event:'*',schema:'public',table:'conversation_members'},()=>reloadConvs())
     .on('postgres_changes',{event:'UPDATE',schema:'public',table:'conversations'},()=>reloadConvs())
@@ -1584,6 +1688,238 @@ document.addEventListener('visibilitychange',()=>{
     reloadConvs();reloadSocial();
   }
 });
+
+/* ================= CHANGE PASSWORD ================= */
+function openChangePassword(){
+  openSheet('Αλλαγή κωδικού',`<form class="sheet-pad" id="pwForm" autocomplete="off">
+      <label class="f" for="pw1">Νέος κωδικός</label>
+      <div class="pw-wrap"><input class="inp" id="pw1" type="password" autocomplete="new-password" minlength="6" required>${EYE_BTN}</div>
+      <label class="f" for="pw2">Ξανά ο νέος κωδικός</label>
+      <div class="pw-wrap"><input class="inp" id="pw2" type="password" autocomplete="new-password" minlength="6" required>${EYE_BTN}</div>
+      <div class="hint" id="pwHint">Τουλάχιστον 6 χαρακτήρες</div>
+      <button class="btn btn-primary btn-block" id="pwSave" type="submit">Αποθήκευση</button></form>`);
+  wireEyes($('sheetBody'));
+  $('pwForm').addEventListener('submit',async e=>{
+    e.preventDefault();
+    const a=$('pw1').value,b=$('pw2').value,h=$('pwHint');
+    if(a.length<6){h.className='hint bad';h.textContent='Τουλάχιστον 6 χαρακτήρες';return;}
+    if(a!==b){h.className='hint bad';h.textContent='Οι δύο κωδικοί δεν ταιριάζουν';return;}
+    $('pwSave').disabled=true;
+    const {error}=await sb.auth.updateUser({password:a});
+    if(error){
+      $('pwSave').disabled=false;h.className='hint bad';
+      h.textContent=/different from the old/i.test(error.message)?'Ο νέος κωδικός είναι ίδιος με τον παλιό':/weak|short/i.test(error.message)?'Ο κωδικός είναι πολύ αδύναμος':'Δεν άλλαξε ο κωδικός';
+      return;
+    }
+    closeSheet();toast('Ο κωδικός άλλαξε');
+  });
+  $('pw1').focus();
+}
+
+/* ================= VIEW-ONCE PHOTOS ================= */
+const ICON_EYE_ONCE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M10.5 9.5 12.5 8v8"/></svg>';
+function msgById(id){return state.msgs.find(x=>x.id===id);}
+function addView(msgId,userId){let s=state.views.get(msgId);if(!s)state.views.set(msgId,s=new Set());s.add(userId);}
+function photoBubble(m,mine,c){
+  const seen=state.views.get(m.id)||new Set();
+  let sub,cls='',open=false;
+  if(mine){
+    const n=seen.size;
+    sub=!n?'Στάλθηκε':(c?.is_group?`Την είδαν ${n}`:'Προβλήθηκε');
+    if(n&&!c?.is_group)cls=' done';
+  }else if(seen.has(state.me.id)){sub='Προβλήθηκε';cls=' done';}
+  else{sub='Πάτα για προβολή';cls=' fresh';open=true;}
+  return {cls,open,html:`<span class="pi">${ICON_EYE_ONCE}</span><span><b>Φωτογραφία</b><small>${sub}</small></span>`};
+}
+$('photoBtn').onclick=()=>{if(state.activeId)$('photoFile').click();};
+$('photoFile').onchange=e=>{
+  const f=e.target.files[0];e.target.value='';
+  if(!f||!state.activeId)return;
+  if(!f.type.startsWith('image/'))return toast('Διάλεξε μια εικόνα');
+  const convId=state.activeId,url=URL.createObjectURL(f);
+  openSheet('Αποστολή φωτογραφίας',`<div class="send-photo"><img src="${url}" alt="">
+      <div class="note">${ICON_EYE_ONCE}Θα διαγραφεί μόλις τη δει</div></div>`,
+    `<button class="btn btn-primary" id="sendPhotoBtn" style="width:100%">Αποστολή</button>`);
+  const close0=closeSheet;
+  $('closeSheet').onclick=()=>{URL.revokeObjectURL(url);close0();};
+  $('sendPhotoBtn').onclick=async()=>{
+    const btn=$('sendPhotoBtn');btn.disabled=true;btn.textContent='Αποστολή…';
+    try{
+      const blob=await shrinkImage(f,1600);
+      const path=`${convId}/${crypto.randomUUID()}.jpg`;
+      const up=await sb.storage.from('chat-photos').upload(path,blob,{contentType:'image/jpeg',upsert:false});
+      if(up.error)throw up.error;
+      const {data,error}=await sb.from('messages').insert({conversation_id:convId,sender_id:state.me.id,content:path,kind:'photo'}).select(MSG_COLS).single();
+      if(error)throw error;
+      URL.revokeObjectURL(url);closeSheet();
+      if(state.activeId===convId)appendMessage(data);
+      bumpConv(data);
+    }catch(err){console.warn(err);btn.disabled=false;btn.textContent='Αποστολή';toast('Η φωτογραφία δεν στάλθηκε');}
+  };
+};
+async function openPhoto(m){
+  const c=activeConv();
+  const s=(c?.members||[]).find(x=>x.id===m.sender_id);
+  const v=document.createElement('div');v.className='once-viewer';
+  v.innerHTML=`<div class="ov-img"><div class="spin"></div></div>`;
+  document.body.appendChild(v);
+  let r=null;
+  try{
+    const {data:{session}}=await sb.auth.getSession();
+    r=await fetch(`${SUPABASE_URL}/functions/v1/open-photo`,{method:'POST',
+      headers:{'Content-Type':'application/json',apikey:SUPABASE_KEY,Authorization:'Bearer '+(session?.access_token||'')},
+      body:JSON.stringify({id:m.id})});
+  }catch{}
+  if(r&&(r.ok||r.status===410)){addView(m.id,state.me.id);renderMessages(false);}
+  if(!r||!r.ok){v.remove();return toast(r&&r.status===410?'Η φωτογραφία δεν είναι πια διαθέσιμη':'Δεν άνοιξε η φωτογραφία. Δοκίμασε ξανά.');}
+  const url=URL.createObjectURL(await r.blob());
+  v.innerHTML=`<div class="ov-top"><b>${esc(s?memberName(s):'Φωτογραφία')}</b><button aria-label="Κλείσιμο">×</button></div>
+    <div class="ov-img"><img src="${url}" alt="" draggable="false"></div>
+    <div class="ov-note">Η φωτογραφία διαγράφεται μόλις την κλείσεις</div>`;
+  v.addEventListener('contextmenu',e=>e.preventDefault());
+  const close=()=>{URL.revokeObjectURL(url);v.remove();document.removeEventListener('keydown',key,true);};
+  const key=e=>{if(e.key==='Escape'){e.stopPropagation();close();}};
+  v.onclick=close;document.addEventListener('keydown',key,true);
+}
+
+/* ================= REACTIONS (double tap = ❤️, long press = pick) ================= */
+const QUICK_RX=['❤️','😂','😮','😢','😡','👍'];
+const MORE_RX=['🔥','👏','🎉','😍','🥰','😘','🤣','😅','😭','😱','🤯','🥳','😎','🤔','🙄','🙏','🙌','💪','👌','👀','💯','✨','💔','👎'];
+function myReaction(m){return (m.reactions||[]).find(r=>r.user_id===state.me.id)?.emoji||null;}
+function reactsHTML(m){
+  const rx=m.reactions||[];if(!rx.length)return '';
+  const uniq=[...new Set(rx.map(r=>r.emoji))].slice(0,3).join('');
+  return `<button class="reacts" data-rid="${m.id}" aria-label="Αντιδράσεις">${uniq}${rx.length>1?`<span>${rx.length}</span>`:''}</button>`;
+}
+async function refreshReactions(id){
+  const {data}=await sb.from('message_reactions').select('user_id,emoji').eq('message_id',id);
+  const m=msgById(id);if(!m)return;
+  m.reactions=data||[];renderMessages(false);
+}
+function popHeart(id,emoji='❤️'){
+  const b=document.querySelector(`#messages .bubble[data-id="${id}"]`);if(!b)return;
+  const h=document.createElement('span');h.className='heart-pop';h.textContent=emoji;
+  b.appendChild(h);setTimeout(()=>h.remove(),750);
+}
+async function react(m,emoji){
+  const before=(m.reactions||[]).slice();
+  const cur=myReaction(m);
+  const others=before.filter(r=>r.user_id!==state.me.id);
+  const next=cur===emoji?null:emoji;
+  m.reactions=next?[...others,{user_id:state.me.id,emoji:next}]:others;
+  renderMessages(false);
+  if(next)popHeart(m.id,next);
+  const {error}=await sb.rpc('react_message',{msg:m.id,e:emoji});
+  if(error){m.reactions=before;renderMessages(false);toast('Δεν αποθηκεύτηκε η αντίδραση');}
+}
+function closeReactPicker(){document.querySelectorAll('.rx-overlay').forEach(x=>x.remove());}
+function openReactPicker(b){
+  const m=msgById(+b.dataset.id);if(!m)return;
+  closeReactPicker();
+  const mine=m.sender_id===state.me.id,cur=myReaction(m);
+  const rect=b.getBoundingClientRect(),W=innerWidth,H=innerHeight;
+  const ov=document.createElement('div');ov.className='rx-overlay';
+  const clone=b.cloneNode(true);clone.classList.add('rx-clone');
+  const cs=getComputedStyle(b);
+  Object.assign(clone.style,{left:rect.left+'px',top:rect.top+'px',width:rect.width+'px',background:cs.background,color:cs.color,borderRadius:cs.borderRadius,padding:cs.padding,font:cs.font});
+  const pop=document.createElement('div');pop.className='rx-pop';
+  pop.innerHTML=`<div class="rx-bar">${QUICK_RX.map(e=>`<button data-e="${e}" class="${e===cur?'on':''}">${e}</button>`).join('')}<button class="more" aria-label="Περισσότερα">+</button></div>
+    <div class="rx-more" hidden>${MORE_RX.map(e=>`<button data-e="${e}" class="${e===cur?'on':''}">${e}</button>`).join('')}</div>`;
+  const menu=document.createElement('div');menu.className='rx-menu';
+  menu.innerHTML=(m.kind==='text'?`<button data-act="copy">Αντιγραφή<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>`:'')+
+    (cur?`<button data-act="unreact">Αφαίρεση αντίδρασης<span>${cur}</span></button>`:'');
+  ov.append(clone,pop);if(menu.innerHTML)ov.append(menu);
+  document.body.appendChild(ov);
+  const place=()=>{
+    const pw=pop.offsetWidth,ph=pop.querySelector('.rx-bar').offsetHeight;
+    let left=mine?rect.right-pw:rect.left;left=Math.max(8,Math.min(W-pw-8,left));
+    const above=rect.top-ph-10>8;
+    let top=above?rect.top-ph-10:rect.bottom+10;
+    pop.style.left=left+'px';pop.style.top=Math.min(top,H-pop.offsetHeight-8)+'px';
+    if(menu.isConnected){
+      const mw=menu.offsetWidth,mh=menu.offsetHeight;
+      let ml=mine?rect.right-mw:rect.left;ml=Math.max(8,Math.min(W-mw-8,ml));
+      let mt=above?rect.bottom+10:top+pop.offsetHeight+10;
+      if(mt+mh>H-8)mt=Math.max(8,(above?rect.top-ph-20-mh:H-mh-8));
+      menu.style.left=ml+'px';menu.style.top=mt+'px';
+    }
+  };
+  place();
+  ov.addEventListener('click',e=>{
+    const eb=e.target.closest('[data-e]');
+    if(eb){closeReactPicker();react(m,eb.dataset.e);return;}
+    if(e.target.closest('.more')){const g=pop.querySelector('.rx-more');g.hidden=!g.hidden;place();return;}
+    const act=e.target.closest('[data-act]')?.dataset.act;
+    if(act==='copy'){navigator.clipboard?.writeText(m.content).then(()=>toast('Αντιγράφηκε'),()=>toast('Δεν αντιγράφηκε'));}
+    if(act==='unreact'&&cur)react(m,cur);
+    if(e.target.closest('.rx-bar,.rx-more'))return;
+    closeReactPicker();
+  });
+}
+function showReactors(id){
+  const m=msgById(id);if(!m)return;
+  const c=activeConv();
+  const draw=()=>{
+    const rx=m.reactions||[];
+    if(!rx.length)return closeSheet();
+    $('sheetBody').innerHTML=rx.map(r=>{
+      const p=r.user_id===state.me.id?state.me:(c?.members||[]).find(x=>x.id===r.user_id);
+      const me=r.user_id===state.me.id;
+      return `<button class="rx-who" ${me?'data-me="1"':''}>${avP(p,'sm')}<div class="n"><b>${esc(me?'Εσύ':memberName(p))}</b><span>${me?'Πάτα για αφαίρεση':'@'+esc(p?.username||'')}</span></div><span class="e">${r.emoji}</span></button>`;
+    }).join('');
+    const mine=$('sheetBody').querySelector('[data-me]');
+    if(mine)mine.onclick=async()=>{await react(m,myReaction(m));draw();};
+  };
+  openSheet('Αντιδράσεις','');draw();sheetRefresher=draw;
+}
+// gestures on the message list (set once)
+(()=>{
+  const box=$('messages');
+  let timer=null,start=null,fired=false,lastTap={id:null,t:0};
+  const cancel=()=>{clearTimeout(timer);start=null;};
+  box.addEventListener('pointerdown',e=>{
+    const b=e.target.closest('.bubble[data-id]');if(!b)return;
+    if(e.pointerType==='mouse'&&e.button!==0)return;
+    fired=false;start={x:e.clientX,y:e.clientY};clearTimeout(timer);
+    timer=setTimeout(()=>{fired=true;start=null;navigator.vibrate?.(12);openReactPicker(b);},450);
+  });
+  box.addEventListener('pointermove',e=>{if(start&&Math.hypot(e.clientX-start.x,e.clientY-start.y)>10)cancel();});
+  box.addEventListener('pointerup',cancel);box.addEventListener('pointercancel',cancel);box.addEventListener('scroll',cancel,{passive:true});
+  box.addEventListener('contextmenu',e=>{
+    const b=e.target.closest('.bubble[data-id]');if(!b)return;
+    e.preventDefault();cancel();
+    if(!fired){fired=true;openReactPicker(b);}
+  });
+  box.addEventListener('mousedown',e=>{if(e.detail>1&&e.target.closest('.bubble'))e.preventDefault();});
+  box.addEventListener('click',e=>{
+    if(fired){fired=false;e.preventDefault();return;}
+    const r=e.target.closest('.reacts[data-rid]');if(r)return showReactors(+r.dataset.rid);
+    const b=e.target.closest('.bubble[data-id]');if(!b||e.target.closest('a'))return;
+    const m=msgById(+b.dataset.id);if(!m)return;
+    if(b.dataset.open)return openPhoto(m);
+    const now=Date.now();
+    if(lastTap.id===m.id&&now-lastTap.t<320){lastTap={id:null,t:0};react(m,'❤️');}
+    else lastTap={id:m.id,t:now};
+  });
+})();
+
+/* ================= FIT THE VISIBLE SCREEN (keyboard) ================= */
+(()=>{
+  const vv=window.visualViewport;if(!vv)return;
+  const root=document.documentElement;
+  let raf=0;
+  const fit=()=>{
+    cancelAnimationFrame(raf);
+    raf=requestAnimationFrame(()=>{
+      root.style.setProperty('--vvh',vv.height+'px');
+      root.style.setProperty('--vvt',vv.offsetTop+'px');
+      const kb=window.innerHeight-vv.height>120;
+      root.classList.toggle('kb-open',kb);
+      if(kb){const box=$('messages');if(box&&box.scrollHeight-box.scrollTop-box.clientHeight<200)box.scrollTop=box.scrollHeight;}
+    });
+  };
+  vv.addEventListener('resize',fit);vv.addEventListener('scroll',fit);fit();
+})();
 
 /* ================= NO ZOOM ================= */
 ['gesturestart','gesturechange','gestureend'].forEach(ev=>document.addEventListener(ev,e=>{if(!e.target.closest?.('.crop-box'))e.preventDefault();},{passive:false}));
@@ -1670,6 +2006,7 @@ function settingsHTML(){
     <div class="set-group">
       <div class="set-item">${ICON_BELL}<div class="tx"><b>Ειδοποιήσεις</b><span>${sub}</span></div>
         <button class="switch${on?' on':''}" id="pushSwitch" role="switch" aria-checked="${on}" aria-label="Ειδοποιήσεις" ${canToggle?'':'disabled'}></button></div>
+      <button class="set-item" id="pwBtn">${ICON_LOCK}<div class="tx"><b>Αλλαγή κωδικού</b></div></button>
       <button class="set-item danger" id="logoutBtn">${ICON_LOGOUT}<div class="tx"><b>Αποσύνδεση</b></div></button>
     </div>`;
 }
