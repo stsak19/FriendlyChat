@@ -21,12 +21,14 @@
   --text:#0b0b0f; --muted:#737380; --accent:#4c5bf5; --accent-ink:#fff; --accent-soft:#e9ebff;
   --mine:#4c5bf5; --mine-ink:#fff; --theirs:#efeff2; --danger:#e5484d; --ok:#1a9a5a;
   --ring:linear-gradient(45deg,#f9a13b,#ee2a7b,#6228d7);
+  --nav:#f6f6f8;
 }
 @media (prefers-color-scheme: dark){
   :root{
     --bg:#000000; --panel:#000000; --field:#1f1f24; --line:#26262c; --hover:#121216;
     --text:#f5f5f7; --muted:#9a9aa6; --accent:#6b78ff; --accent-soft:#1d2050;
     --mine:#5563f7; --theirs:#232329; --danger:#ff6369;
+    --nav:#131316;
   }
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -260,7 +262,7 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;backgrou
 /* panes + bottom navbar */
 .pane{flex:1;display:flex;flex-direction:column;min-height:0}
 .pane[hidden]{display:none}
-.navbar{display:flex;border-top:1px solid var(--line);background:var(--panel);padding:6px 8px max(6px,env(safe-area-inset-bottom))}
+.navbar{display:flex;border-top:1px solid var(--line);background:var(--nav);padding:6px 8px max(6px,calc(env(safe-area-inset-bottom) - 18px))}
 .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;font-size:11px;font-weight:600;color:var(--muted)}
 .nav-btn.on{color:var(--text)}
 .nav-ic{position:relative;height:28px;display:grid;place-items:center}
@@ -268,14 +270,15 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;backgrou
 .nav-btn.on .nav-ic svg{stroke-width:2.5}
 .nav-ic .badge{position:absolute;top:-4px;right:-10px}
 .nav-ic .avatar{width:28px;height:28px;font-size:11px}
-.nav-btn.on .nav-ic .avatar{box-shadow:0 0 0 2px var(--panel),0 0 0 4px var(--text)}
+.nav-btn.on .nav-ic .avatar{box-shadow:0 0 0 2px var(--nav),0 0 0 4px var(--text)}
 
 /* my profile page */
 .me-head{display:flex;align-items:center;padding:14px 16px 6px;padding-top:max(14px,calc(env(safe-area-inset-top) + 10px))}
 .me-head b{flex:1;font-size:22px;font-weight:800;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .me-top{display:flex;align-items:center;gap:22px;padding:10px 16px 4px}
 .me-top .stats{display:flex;gap:26px}
-.me-top .stat{text-align:center}
+.me-top .stat{text-align:center;padding:4px 8px;margin:-4px -8px;border-radius:12px}
+.me-top .stat:active{background:var(--hover)}
 .me-top .stat b{display:block;font-size:19px}
 .me-top .stat span{font-size:13px;color:var(--muted)}
 .me-info{padding:8px 16px 0}
@@ -283,7 +286,7 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;backgrou
 .me-info .bio{margin-top:3px;white-space:pre-wrap;overflow-wrap:anywhere}
 .me-btns{display:flex;gap:8px;padding:14px 16px 6px}
 .me-btns .btn{flex:1;padding:9px 12px}
-.lock-note{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);padding:0 16px 6px}
+.lock-note{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);padding:0 16px 8px}
 .lock-note svg{width:14px;height:14px}
 
 /* chat look: theme + background */
@@ -859,30 +862,37 @@ function renderProfile(){
   pane.innerHTML=`
     <div class="me-head"><b>${esc(me.username)}</b></div>
     <div class="me-top"><div id="myPic">${avP(me,'xl'+(photo?' zoomable':''))}</div>
-      <div class="stats"><div class="stat"><b>${fr.length}</b><span>φίλοι</span></div>
-      <div class="stat"><b>${state.convs.filter(c=>c.is_group).length}</b><span>ομάδες</span></div></div></div>
+      <div class="stats"><button class="stat" id="friendsStat" aria-label="Οι φίλοι σου"><b>${fr.length}</b><span>φίλοι</span></button></div></div>
     <div class="me-info"><div class="nm">${esc(nameOf(me))}</div>${me.bio?`<div class="bio">${linkify(me.bio)}</div>`:''}</div>
     <div class="me-btns"><button class="btn btn-soft" id="editProfileBtn">Επεξεργασία προφίλ</button></div>
     ${settingsHTML()}
-    <div class="sect">Οι φίλοι σου</div>
-    <div class="lock-note">${ICON_LOCK}Μόνο εσύ βλέπεις αυτή τη λίστα</div>
-    ${fr.length?fr.map(f=>`<div class="person" data-id="${f.id}" role="button">${avP(f,'sm')}
-        <div class="n"><b>${esc(nameOf(f))}</b><span>@${esc(f.username)}</span></div>
-        <div class="actions"><button class="btn btn-soft btn-sm" data-act="msg" data-id="${f.id}">Μήνυμα</button></div></div>`).join('')
-      :`<div class="empty" style="padding-top:14px"><b>Δεν έχεις φίλους ακόμα</b>Ψάξε κάποιον με το όνομα χρήστη του.<br><button class="btn btn-primary btn-sm" id="findFriends" style="margin-top:12px">Βρες φίλους</button></div>`}
     <div style="height:24px"></div>`;
   pane.scrollTop=keep;
   if(photo)$('myPic').onclick=()=>viewPhoto(photo);
+  $('friendsStat').onclick=openFriends;
   $('editProfileBtn').onclick=openMyProfile;
   $('pwBtn').onclick=openChangePassword;
   const pb=$('pushSwitch');if(pb)pb.onclick=async()=>{
     if(state.pushBusy)return;state.pushBusy=true;pb.classList.add('busy');pb.classList.toggle('on',!state.pushOn);
     try{await(state.pushOn?pushDisable():pushEnable());}finally{state.pushBusy=false;renderProfile();}
   };
-  pane.querySelectorAll('.person').forEach(b=>b.onclick=()=>openUser(fr.find(x=>x.id===b.dataset.id)));
-  pane.querySelectorAll('[data-act=msg]').forEach(b=>b.onclick=e=>{e.stopPropagation();setView('messages');startDirect(b.dataset.id);});
-  const ff=$('findFriends');if(ff)ff.onclick=()=>{setView('messages');$('search').focus();};
   $('logoutBtn').onclick=async()=>{if(!confirm('Αποσύνδεση;'))return;await pushDisable(false);await sb.auth.signOut();};
+}
+// My friends (opens from the "φίλοι" number on my profile)
+function openFriends(){
+  const draw=()=>{
+    const fr=state.friends;
+    $('sheetBody').innerHTML=`<div class="lock-note">${ICON_LOCK}Μόνο εσύ βλέπεις αυτή τη λίστα</div>`+
+      (fr.length?fr.map(f=>`<div class="person" data-id="${f.id}" role="button">${avP(f,'sm')}
+        <div class="n"><b>${esc(nameOf(f))}</b><span>@${esc(f.username)}</span></div>
+        <div class="actions"><button class="btn btn-soft btn-sm" data-act="msg" data-id="${f.id}">Μήνυμα</button></div></div>`).join('')
+      :`<div class="empty" style="padding-top:14px"><b>Δεν έχεις φίλους ακόμα</b>Ψάξε κάποιον με το όνομα χρήστη του.<br><button class="btn btn-primary btn-sm" id="findFriends" style="margin-top:12px">Βρες φίλους</button></div>`);
+    const body=$('sheetBody');
+    body.querySelectorAll('.person').forEach(b=>b.onclick=()=>openUser(fr.find(x=>x.id===b.dataset.id)));
+    body.querySelectorAll('[data-act=msg]').forEach(b=>b.onclick=e=>{e.stopPropagation();closeSheet();setView('messages');startDirect(b.dataset.id);});
+    const ff=$('findFriends');if(ff)ff.onclick=()=>{closeSheet();setView('messages');$('search').focus();};
+  };
+  openSheet('Φίλοι','');draw();sheetRefresher=draw;
 }
 function directWith(uid){return state.convs.find(c=>!c.is_group&&(c.members||[]).some(m=>m.id===uid));}
 function renderFriends(){
