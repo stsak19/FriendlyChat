@@ -271,6 +271,9 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;backgrou
 .messages.has-bg .day,.messages.has-bg .stamp,.messages.has-bg .sender,.messages.has-bg .sys,.messages.has-bg .chat-intro span{color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.7)}
 .messages.has-bg .chat-intro b{color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.7)}
 .messages.has-bg .day,.messages.has-bg .sys{background:rgba(0,0,0,.35);padding:3px 10px;border-radius:999px;text-shadow:none}
+.chat-intro .ttl{display:inline-flex!important;align-items:center;gap:5px;margin-top:12px;font-size:12.5px;background:var(--field);color:var(--muted);padding:5px 11px;border-radius:999px}
+.chat-intro .ttl svg{width:13px;height:13px}
+.messages.has-bg .chat-intro .ttl{background:rgba(0,0,0,.35);color:#fff;text-shadow:none}
 .sys{align-self:center;text-align:center;font-size:12.5px;color:var(--muted);margin:10px 24px 4px;max-width:85%}
 .swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:12px;padding:4px 16px 6px}
 .swatch{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:11.5px;color:var(--muted)}
@@ -548,6 +551,8 @@ function relation(uid){
   if(state.incoming.some(p=>p.id===uid))return 'incoming';
   return 'none';
 }
+const ICON_TIMER='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/></svg>';
+const TTL_MS=24*3600e3;
 const ICON_PLUS='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
 const ICON_CAM='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3Z"/><circle cx="12" cy="13" r="3.5"/></svg>';
 
@@ -798,6 +803,13 @@ function renderConvs(){
   const ng=$('newGroupRow');if(ng)ng.onclick=()=>openCompose(true);
 }
 setInterval(()=>{if(state.me&&!$('homeView').hidden)renderConvs();},60000);
+// drop messages that passed 24h while the chat is open
+setInterval(()=>{
+  if(!state.activeId||!state.msgs.length)return;
+  const cut=Date.now()-TTL_MS;
+  const keep=state.msgs.filter(m=>new Date(m.created_at).getTime()>cut);
+  if(keep.length!==state.msgs.length){state.msgs=keep;renderMessages(false);reloadConvs();}
+},60000);
 
 /* ================= SEARCH ================= */
 const searchInp=$('search');
@@ -1430,7 +1442,8 @@ function renderMessages(scrollBottom){
     const o=others(c)[0];
     html+=`<div class="chat-intro">${c.is_group?convAvatar(c).replace('class="stack"','class="stack" style="margin:0 auto"'):`<div style="display:flex;justify-content:center">${avP(o,'xl')}</div>`}
       <b>${esc(convTitle(c))}</b><span>${c.is_group?`${(c.members||[]).length} μέλη`:(o?'@'+esc(o.username):'')}</span>
-      ${!c.is_group&&o?.bio?`<span class="bio">${linkify(o.bio)}</span>`:''}</div>`;
+      ${!c.is_group&&o?.bio?`<span class="bio">${linkify(o.bio)}</span>`:''}
+      <span class="ttl">${ICON_TIMER}Τα μηνύματα σβήνονται αυτόματα μετά από 24 ώρες</span></div>`;
   }
   const gap=5*60e3;
   state.msgs.forEach((m,i)=>{
