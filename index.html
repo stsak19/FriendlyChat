@@ -2,7 +2,7 @@
 <html lang="el">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -31,6 +31,9 @@
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%}
+html{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+/* 16px stops iPhone from zooming in when you tap a field */
+input,textarea,select{font-size:16px!important}
 body{background:var(--bg);color:var(--text);font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
 button{font:inherit;cursor:pointer;border:0;background:none;color:inherit;padding:0}
 input,textarea{font:inherit;color:inherit}
@@ -50,6 +53,15 @@ svg{display:block}
 label.f{display:block;font-size:13px;font-weight:600;margin:12px 0 6px}
 .inp{width:100%;padding:12px 14px;border:1px solid transparent;border-radius:12px;background:var(--field);outline:none}
 .inp:focus{border-color:var(--accent)}
+.pw-wrap{position:relative}
+.pw-wrap .inp{padding-right:48px}
+.eye{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:40px;height:40px;display:grid;place-items:center;color:var(--muted);border-radius:10px}
+.eye svg{width:21px;height:21px}
+.eye .slash{display:none}
+.eye.on{color:var(--text)}
+.eye.on .slash{display:block}
+.remember{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:14px;cursor:pointer;user-select:none}
+.remember input{width:20px;height:20px;margin:0;accent-color:var(--accent);cursor:pointer}
 textarea.inp{resize:none;line-height:1.4}
 .hint{font-size:12px;color:var(--muted);margin-top:5px;min-height:16px}
 .hint.ok{color:var(--ok)}.hint.bad{color:var(--danger)}
@@ -334,7 +346,8 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;backgrou
       <label class="f" for="liEmail">Email</label>
       <input class="inp" id="liEmail" type="email" autocomplete="email" required>
       <label class="f" for="liPass">Κωδικός</label>
-      <input class="inp" id="liPass" type="password" autocomplete="current-password" required>
+      <div class="pw-wrap"><input class="inp" id="liPass" type="password" autocomplete="current-password" required><button type="button" class="eye" aria-label="Εμφάνιση κωδικού" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="slash" d="M3 3l18 18"/></svg></button></div>
+      <label class="remember"><input type="checkbox" id="rememberMe" checked>Να με θυμάσαι</label>
       <button class="btn btn-primary btn-block" type="submit">Σύνδεση</button>
       <div class="link-row"><button type="button" class="btn-link" id="forgotBtn">Ξέχασα τον κωδικό μου</button></div>
     </form>
@@ -346,7 +359,7 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;backgrou
       <label class="f" for="suEmail">Email</label>
       <input class="inp" id="suEmail" type="email" autocomplete="email" required>
       <label class="f" for="suPass">Κωδικός</label>
-      <input class="inp" id="suPass" type="password" autocomplete="new-password" minlength="6" required>
+      <div class="pw-wrap"><input class="inp" id="suPass" type="password" autocomplete="new-password" minlength="6" required><button type="button" class="eye" aria-label="Εμφάνιση κωδικού" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="slash" d="M3 3l18 18"/></svg></button></div>
       <div class="hint">Τουλάχιστον 6 χαρακτήρες</div>
       <button class="btn btn-primary btn-block" type="submit" id="signupBtn">Δημιουργία λογαριασμού</button>
     </form>
@@ -354,7 +367,7 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;backgrou
     <form id="resetForm" class="hidden">
       <p class="auth-sub" style="margin:0">Βάλε νέο κωδικό για τον λογαριασμό σου.</p>
       <label class="f" for="newPass">Νέος κωδικός</label>
-      <input class="inp" id="newPass" type="password" autocomplete="new-password" minlength="6" required>
+      <div class="pw-wrap"><input class="inp" id="newPass" type="password" autocomplete="new-password" minlength="6" required><button type="button" class="eye" aria-label="Εμφάνιση κωδικού" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="slash" d="M3 3l18 18"/></svg></button></div>
       <button class="btn btn-primary btn-block" type="submit">Αποθήκευση</button>
     </form>
 
@@ -442,7 +455,16 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;backgrou
 /* ================= CONFIG ================= */
 const SUPABASE_URL = 'https://xnkrwbuzhumrstetnsce.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_3ZqSwM_QwWqNl04zD_pPhA_zVX1jqTw';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// "Remember me" on: stay logged in (localStorage). Off: logged out when the app/tab is closed (sessionStorage).
+const authStore={
+  getItem:k=>{try{return localStorage.getItem(k)??sessionStorage.getItem(k);}catch{return null;}},
+  setItem:(k,v)=>{try{
+    if(localStorage.getItem('fc-remember')==='0'){sessionStorage.setItem(k,v);localStorage.removeItem(k);}
+    else{localStorage.setItem(k,v);sessionStorage.removeItem(k);}
+  }catch{}},
+  removeItem:k=>{try{localStorage.removeItem(k);sessionStorage.removeItem(k);}catch{}},
+};
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {auth:{storage:authStore,persistSession:true}});
 
 const USERNAME_RE = /^[a-z0-9_]{3,24}$/;
 const PAGE = 50;
@@ -571,6 +593,17 @@ function setTab(tab){
   $('resetForm').classList.add('hidden');$('authTabs').classList.remove('hidden');hideAuthMsg();
 }
 document.querySelectorAll('#authTabs button').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
+// show / hide password
+document.querySelectorAll('.pw-wrap .eye').forEach(b=>{
+  b.addEventListener('pointerdown',e=>e.preventDefault()); // keep the keyboard open
+  b.onclick=()=>{
+    const i=b.previousElementSibling,show=i.type==='password';
+    i.type=show?'text':'password';b.classList.toggle('on',show);
+    b.setAttribute('aria-label',show?'Απόκρυψη κωδικού':'Εμφάνιση κωδικού');
+  };
+});
+// remembered email + checkbox state
+(()=>{const em=lsGet('fc-email');if(em)$('liEmail').value=em;if(lsGet('fc-remember')==='0')$('rememberMe').checked=false;})();
 
 const checkUsername=debounce(async(v)=>{
   const hint=$('userHint');
@@ -610,7 +643,10 @@ $('signupForm').addEventListener('submit',async e=>{
 });
 $('loginForm').addEventListener('submit',async e=>{
   e.preventDefault();hideAuthMsg();
-  const {error}=await sb.auth.signInWithPassword({email:$('liEmail').value.trim(),password:$('liPass').value});
+  const remember=$('rememberMe').checked,email=$('liEmail').value.trim();
+  lsSet('fc-remember',remember?'1':'0');
+  lsSet('fc-email',remember?email:null);
+  const {error}=await sb.auth.signInWithPassword({email,password:$('liPass').value});
   if(error){
     const m=error.message||'';
     if(/invalid login/i.test(m))return showAuthMsg('Λάθος email ή κωδικός.');
@@ -1530,6 +1566,12 @@ document.addEventListener('visibilitychange',()=>{
     reloadConvs();reloadSocial();
   }
 });
+
+/* ================= NO ZOOM ================= */
+['gesturestart','gesturechange','gestureend'].forEach(ev=>document.addEventListener(ev,e=>{if(!e.target.closest?.('.crop-box'))e.preventDefault();},{passive:false}));
+document.addEventListener('touchmove',e=>{if(e.touches.length>1&&!e.target.closest?.('.crop-box'))e.preventDefault();},{passive:false});
+document.addEventListener('wheel',e=>{if(e.ctrlKey&&!e.target.closest?.('.crop-box'))e.preventDefault();},{passive:false});
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&['+','-','=','0'].includes(e.key))e.preventDefault();});
 
 /* ================= PUSH NOTIFICATIONS ================= */
 const VAPID_PUBLIC='BJPqJ6hvtRDWRFnb7aHFkOlN98eLZuYk-IBD5yWVRwUgeJHsqHXzjxmirdE0cL-5DxTU-sRyCBuB2OTf8JcxmJ0';
