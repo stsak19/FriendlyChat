@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#4f46e5">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Chatting">
+<title>Chatting</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#f4f5f8; --panel:#ffffff; --panel-2:#f8f9fb; --line:#e4e6ec;
+  --text:#14161c; --muted:#6b7080; --accent:#4f46e5; --accent-ink:#ffffff;
+  --accent-soft:#eceafe; --mine:#4f46e5; --mine-ink:#ffffff; --theirs:#eef0f4;
+  --danger:#d03a3a; --radius:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0e1015; --panel:#161920; --panel-2:#1b1f27; --line:#2a2f3a;
+    --text:#eceef3; --muted:#9097a6; --accent:#7c74ff; --accent-ink:#ffffff;
+    --accent-soft:#25234a; --mine:#5b52f0; --mine-ink:#ffffff; --theirs:#232834; --danger:#ff6b6b;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--text);font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
+input,textarea{font:inherit;color:inherit}
+.hidden{display:none!important}
+
+/* ---------- Auth ---------- */
+#auth{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px 16px}
+.auth-card{width:100%;max-width:380px;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:28px 24px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:22px;margin-bottom:6px}
+.brand-dot{width:30px;height:30px;border-radius:9px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:16px}
+.auth-sub{color:var(--muted);margin:0 0 20px}
+.tabs{display:flex;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:4px;margin-bottom:18px}
+.tabs button{flex:1;padding:8px;border-radius:9px;color:var(--muted);font-weight:600}
+.tabs button.on{background:var(--panel);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+label.f{display:block;font-size:13px;font-weight:600;margin:12px 0 6px}
+.inp{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:11px;background:var(--panel-2);outline:none}
+.inp:focus{border-color:var(--accent);background:var(--panel)}
+.hint{font-size:12px;color:var(--muted);margin-top:5px;min-height:16px}
+.hint.ok{color:#1a9a5a}.hint.bad{color:var(--danger)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:11px 16px;border-radius:11px;font-weight:600}
+.btn-primary{background:var(--accent);color:var(--accent-ink);width:100%;margin-top:18px}
+.btn-primary:disabled{opacity:.5;cursor:default}
+.btn-ghost{color:var(--accent)}
+.btn-danger{color:var(--danger)}
+.msg-box{margin-top:14px;padding:10px 12px;border-radius:10px;font-size:14px}
+.msg-box.err{background:rgba(208,58,58,.1);color:var(--danger)}
+.msg-box.info{background:var(--accent-soft);color:var(--text)}
+.link-row{text-align:center;margin-top:12px}
+
+/* ---------- App layout ---------- */
+#app{height:100dvh;display:flex}
+aside{width:340px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.side-head{padding:14px 14px 10px;padding-top:max(14px,env(safe-area-inset-top));display:flex;align-items:center;gap:8px}
+.side-head h1{font-size:20px;margin:0;flex:1}
+.icon-btn{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;color:var(--text)}
+.icon-btn:hover{background:var(--panel-2)}
+.icon-btn svg{width:20px;height:20px}
+.side-search{padding:0 14px 10px}
+.conv-list{flex:1;overflow-y:auto;padding:0 8px 8px}
+.conv{display:flex;gap:11px;align-items:center;padding:10px;border-radius:12px;width:100%;text-align:left}
+.conv:hover{background:var(--panel-2)}
+.conv.on{background:var(--accent-soft)}
+.conv-body{flex:1;min-width:0}
+.conv-top{display:flex;align-items:baseline;gap:6px}
+.conv-name{font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conv-time{font-size:12px;color:var(--muted);flex-shrink:0}
+.conv-bottom{display:flex;align-items:center;gap:6px;margin-top:2px}
+.conv-last{flex:1;color:var(--muted);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conv.unread .conv-last{color:var(--text);font-weight:500}
+.badge{background:var(--accent);color:#fff;font-size:11px;font-weight:700;border-radius:999px;min-width:20px;height:20px;padding:0 6px;display:grid;place-items:center}
+.empty-list{padding:30px 16px;text-align:center;color:var(--muted);font-size:14px}
+
+.avatar{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:700;flex-shrink:0;font-size:16px;text-transform:uppercase}
+.avatar.sm{width:34px;height:34px;font-size:13px}
+.avatar.grp{border-radius:13px}
+
+main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
+.placeholder{flex:1;display:grid;place-items:center;color:var(--muted);text-align:center;padding:20px}
+.chat{flex:1;display:flex;flex-direction:column;min-height:0}
+.chat-head{display:flex;align-items:center;gap:10px;padding:10px 14px;padding-top:max(10px,env(safe-area-inset-top));background:var(--panel);border-bottom:1px solid var(--line)}
+.chat-head .t{flex:1;min-width:0;text-align:left}
+.chat-head .t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-head .t span{font-size:13px;color:var(--muted);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.back{display:none}
+.messages{flex:1;overflow-y:auto;padding:14px 14px 6px;display:flex;flex-direction:column}
+.day{align-self:center;font-size:12px;color:var(--muted);background:var(--panel);border:1px solid var(--line);padding:3px 10px;border-radius:999px;margin:12px 0 8px}
+.row{display:flex;flex-direction:column;max-width:78%;margin-top:2px}
+.row.mine{align-self:flex-end;align-items:flex-end}
+.row.theirs{align-self:flex-start;align-items:flex-start}
+.row.first{margin-top:10px}
+.sender{font-size:12px;font-weight:600;color:var(--muted);margin:0 0 3px 10px}
+.bubble{padding:8px 12px;border-radius:18px;white-space:pre-wrap;word-wrap:break-word;overflow-wrap:anywhere}
+.row.mine .bubble{background:var(--mine);color:var(--mine-ink);border-bottom-right-radius:6px}
+.row.theirs .bubble{background:var(--theirs);border-bottom-left-radius:6px}
+.bubble a{color:inherit;text-decoration:underline}
+.stamp{font-size:11px;color:var(--muted);margin:3px 6px 0}
+.older{align-self:center;margin-bottom:6px;font-size:13px}
+.composer{display:flex;align-items:flex-end;gap:8px;padding:10px 12px;padding-bottom:max(10px,env(safe-area-inset-bottom));background:var(--panel);border-top:1px solid var(--line)}
+.composer textarea{flex:1;resize:none;max-height:140px;padding:10px 14px;border:1px solid var(--line);border-radius:20px;background:var(--panel-2);outline:none;line-height:1.35}
+.composer textarea:focus{border-color:var(--accent)}
+.send{width:42px;height:42px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;flex-shrink:0}
+.send:disabled{opacity:.4;cursor:default}
+.send svg{width:19px;height:19px}
+
+/* ---------- Modal ---------- */
+.overlay{position:fixed;inset:0;background:rgba(10,12,18,.45);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
+.modal{width:100%;max-width:420px;max-height:85dvh;background:var(--panel);border-radius:18px;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--line)}
+.modal-head{display:flex;align-items:center;padding:14px 14px 10px 18px}
+.modal-head h2{font-size:17px;margin:0;flex:1}
+.modal-body{padding:0 18px 18px;overflow-y:auto}
+.people{margin-top:10px}
+.person{display:flex;align-items:center;gap:10px;padding:8px;border-radius:11px;width:100%;text-align:left}
+.person:hover{background:var(--panel-2)}
+.person .n{flex:1;min-width:0}
+.person .n b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.person .n span{font-size:13px;color:var(--muted)}
+.check{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;flex-shrink:0}
+.person.sel .check{background:var(--accent);border-color:var(--accent);color:#fff}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{background:var(--accent-soft);border-radius:999px;padding:4px 6px 4px 10px;font-size:13px;display:flex;align-items:center;gap:4px}
+.chip button{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:14px;line-height:1}
+.role{font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-soft);padding:2px 7px;border-radius:999px}
+.section-t{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:18px 0 6px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--text);color:var(--panel);padding:10px 16px;border-radius:12px;font-size:14px;z-index:60;max-width:90vw}
+
+@media (max-width:760px){
+  aside{width:100%;border-right:0}
+  main{display:none}
+  #app.show-chat aside{display:none}
+  #app.show-chat main{display:flex}
+  .back{display:grid}
+  .row{max-width:86%}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ AUTH ============ -->
+<section id="auth" class="hidden">
+  <div class="auth-card">
+    <div class="brand"><div class="brand-dot">💬</div>Chatting</div>
+    <p class="auth-sub">Μίλα με φίλους, ένας-προς-έναν ή σε ομάδες.</p>
+    <div class="tabs" id="authTabs">
+      <button data-tab="login" class="on">Σύνδεση</button>
+      <button data-tab="signup">Εγγραφή</button>
+    </div>
+
+    <form id="loginForm" autocomplete="on">
+      <label class="f" for="liEmail">Email</label>
+      <input class="inp" id="liEmail" type="email" autocomplete="email" required>
+      <label class="f" for="liPass">Κωδικός</label>
+      <input class="inp" id="liPass" type="password" autocomplete="current-password" required>
+      <button class="btn btn-primary" type="submit">Σύνδεση</button>
+      <div class="link-row"><button type="button" class="btn-ghost" id="forgotBtn">Ξέχασα τον κωδικό μου</button></div>
+    </form>
+
+    <form id="signupForm" class="hidden" autocomplete="on">
+      <label class="f" for="suUser">Όνομα χρήστη</label>
+      <input class="inp" id="suUser" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="24" required placeholder="π.χ. stathis_93">
+      <div class="hint" id="userHint">Λατινικά γράμματα, αριθμοί και _ (3 έως 24 χαρακτήρες)</div>
+      <label class="f" for="suEmail">Email</label>
+      <input class="inp" id="suEmail" type="email" autocomplete="email" required>
+      <label class="f" for="suPass">Κωδικός</label>
+      <input class="inp" id="suPass" type="password" autocomplete="new-password" minlength="6" required>
+      <div class="hint">Τουλάχιστον 6 χαρακτήρες</div>
+      <button class="btn btn-primary" type="submit" id="signupBtn">Δημιουργία λογαριασμού</button>
+    </form>
+
+    <form id="resetForm" class="hidden">
+      <p class="auth-sub" style="margin:0">Βάλε νέο κωδικό για τον λογαριασμό σου.</p>
+      <label class="f" for="newPass">Νέος κωδικός</label>
+      <input class="inp" id="newPass" type="password" autocomplete="new-password" minlength="6" required>
+      <button class="btn btn-primary" type="submit">Αποθήκευση</button>
+    </form>
+
+    <div id="authMsg" class="msg-box hidden"></div>
+  </div>
+</section>
+
+<!-- ============ APP ============ -->
+<section id="app" class="hidden">
+  <aside>
+    <div class="side-head">
+      <h1>Συνομιλίες</h1>
+      <button class="icon-btn" id="newChatBtn" title="Νέα συνομιλία" aria-label="Νέα συνομιλία">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+      </button>
+      <button class="icon-btn" id="newGroupBtn" title="Νέα ομάδα" aria-label="Νέα ομάδα">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>
+      </button>
+      <button class="icon-btn" id="profileBtn" title="Προφίλ" aria-label="Προφίλ"><div class="avatar sm" id="meAvatar"></div></button>
+    </div>
+    <div class="side-search"><input class="inp" id="convFilter" placeholder="Αναζήτηση στις συνομιλίες"></div>
+    <div class="conv-list" id="convList"></div>
+  </aside>
+
+  <main>
+    <div class="placeholder" id="placeholder">
+      <div>
+        <div style="font-size:40px">💬</div>
+        <p>Διάλεξε μια συνομιλία ή ξεκίνα καινούρια.</p>
+      </div>
+    </div>
+    <div class="chat hidden" id="chat">
+      <div class="chat-head">
+        <button class="icon-btn back" id="backBtn" aria-label="Πίσω">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <div id="chatAvatar"></div>
+        <button class="t" id="chatTitleBtn"><b id="chatTitle"></b><span id="chatSub"></span></button>
+      </div>
+      <div class="messages" id="messages"></div>
+      <form class="composer" id="composer">
+        <textarea id="msgInput" rows="1" placeholder="Γράψε μήνυμα…" maxlength="4000"></textarea>
+        <button class="send" id="sendBtn" type="submit" disabled aria-label="Αποστολή">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4Z"/></svg>
+        </button>
+      </form>
+    </div>
+  </main>
+</section>
+
+<div id="modalRoot"></div>
+
+<script>
+/* ================= CONFIG ================= */
+const SUPABASE_URL = 'https://xnkrwbuzhumrstetnsce.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_3ZqSwM_QwWqNl04zD_pPhA_zVX1jqTw';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const USERNAME_RE = /^[a-z0-9_]{3,24}$/;
+const PAGE = 50;
+const $ = (id) => document.getElementById(id);
+const isTouch = matchMedia('(pointer:coarse)').matches;
+
+const state = {
+  me: null,            // profile row
+  convs: [],           // from my_conversations()
+  activeId: null,
+  msgs: [],            // messages of active conversation
+  hasOlder: false,
+  channel: null,
+  filter: '',
+};
+
+/* ================= HELPERS ================= */
+function esc(s){return String(s ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function linkify(s){
+  return esc(s).replace(/(https?:\/\/[^\s<]+[^\s<.,;:!?)\]'"])/g,'<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+}
+const COLORS=['#4f46e5','#0e9f6e','#e0662f','#c2417c','#2b7bd8','#8a4fd6','#d19a0b','#138a99'];
+function colorFor(key){let h=0;for(const c of String(key))h=(h*31+c.charCodeAt(0))>>>0;return COLORS[h%COLORS.length];}
+function initials(name){
+  const parts=String(name||'?').trim().split(/[\s_]+/).filter(Boolean);
+  return ((parts[0]?.[0]||'?')+(parts[1]?.[0]||'')).toUpperCase();
+}
+function avatarHTML(name,key,{sm=false,grp=false}={}){
+  return `<div class="avatar${sm?' sm':''}${grp?' grp':''}" style="background:${colorFor(key)}">${esc(initials(name))}</div>`;
+}
+function fmtTime(d){return new Date(d).toLocaleTimeString('el-GR',{hour:'2-digit',minute:'2-digit'});}
+function sameDay(a,b){a=new Date(a);b=new Date(b);return a.toDateString()===b.toDateString();}
+function fmtDay(d){
+  const x=new Date(d),t=new Date(),y=new Date();y.setDate(t.getDate()-1);
+  if(sameDay(x,t))return 'Σήμερα';
+  if(sameDay(x,y))return 'Χθες';
+  return x.toLocaleDateString('el-GR',{weekday:'long',day:'numeric',month:'long'});
+}
+function fmtListTime(d){
+  const x=new Date(d),t=new Date();
+  if(sameDay(x,t))return fmtTime(x);
+  const diff=(t-x)/864e5;
+  if(diff<6)return x.toLocaleDateString('el-GR',{weekday:'short'});
+  return x.toLocaleDateString('el-GR',{day:'2-digit',month:'2-digit'});
+}
+function toast(text){
+  const el=document.createElement('div');el.className='toast';el.textContent=text;document.body.appendChild(el);
+  setTimeout(()=>el.remove(),3000);
+}
+function debounce(fn,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);};}
+function nameOf(p){return p ? (p.display_name || p.username) : 'Διαγραμμένος χρήστης';}
+
+function convTitle(c){
+  if(c.is_group) return c.name || 'Ομάδα';
+  const other=(c.members||[]).find(m=>m.id!==state.me.id);
+  return nameOf(other);
+}
+function convKey(c){
+  if(c.is_group) return c.id;
+  const other=(c.members||[]).find(m=>m.id!==state.me.id);
+  return other?.id || c.id;
+}
+
+/* ================= AUTH UI ================= */
+function showAuthMsg(text,type='err'){const b=$('authMsg');b.textContent=text;b.className='msg-box '+type;}
+function hideAuthMsg(){$('authMsg').className='msg-box hidden';}
+function setTab(tab){
+  document.querySelectorAll('#authTabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
+  $('loginForm').classList.toggle('hidden',tab!=='login');
+  $('signupForm').classList.toggle('hidden',tab!=='signup');
+  $('resetForm').classList.add('hidden');
+  $('authTabs').classList.remove('hidden');
+  hideAuthMsg();
+}
+document.querySelectorAll('#authTabs button').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
+
+// Username live check
+let userOk=false;
+const checkUsername=debounce(async(v)=>{
+  const hint=$('userHint');
+  if(!USERNAME_RE.test(v)){userOk=false;hint.className='hint bad';
+    hint.textContent=v.length<3?'Τουλάχιστον 3 χαρακτήρες':'Μόνο λατινικά γράμματα, αριθμοί και _';return;}
+  const {data,error}=await sb.rpc('username_available',{u:v});
+  if($('suUser').value.trim().toLowerCase()!==v)return;
+  if(error){hint.className='hint';hint.textContent='Δεν μπόρεσα να ελέγξω το όνομα.';userOk=true;return;}
+  userOk=!!data;hint.className='hint '+(data?'ok':'bad');
+  hint.textContent=data?'✓ Διαθέσιμο':'Το όνομα χρησιμοποιείται ήδη';
+},350);
+$('suUser').addEventListener('input',e=>{
+  const clean=e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,'');
+  if(clean!==e.target.value)e.target.value=clean;
+  userOk=false;$('userHint').className='hint';$('userHint').textContent='Έλεγχος…';
+  checkUsername(clean);
+});
+
+$('signupForm').addEventListener('submit',async e=>{
+  e.preventDefault();hideAuthMsg();
+  const username=$('suUser').value.trim().toLowerCase();
+  const email=$('suEmail').value.trim();
+  const password=$('suPass').value;
+  if(!USERNAME_RE.test(username))return showAuthMsg('Το όνομα χρήστη δεν είναι έγκυρο.');
+  if(password.length<6)return showAuthMsg('Ο κωδικός θέλει τουλάχιστον 6 χαρακτήρες.');
+  const {data:free}=await sb.rpc('username_available',{u:username});
+  if(free===false)return showAuthMsg('Το όνομα χρήστη χρησιμοποιείται ήδη. Διάλεξε άλλο.');
+  $('signupBtn').disabled=true;
+  const {data,error}=await sb.auth.signUp({
+    email,password,
+    options:{data:{username},emailRedirectTo:location.origin+location.pathname}
+  });
+  $('signupBtn').disabled=false;
+  if(error){
+    const m=error.message||'';
+    if(/already registered|already exists/i.test(m))return showAuthMsg('Υπάρχει ήδη λογαριασμός με αυτό το email.');
+    if(/database error/i.test(m))return showAuthMsg('Το όνομα χρήστη πιάστηκε μόλις τώρα. Διάλεξε άλλο.');
+    if(/password/i.test(m))return showAuthMsg('Ο κωδικός δεν είναι αρκετά δυνατός.');
+    return showAuthMsg('Κάτι πήγε στραβά: '+m);
+  }
+  if(data?.user && Array.isArray(data.user.identities) && data.user.identities.length===0){
+    return showAuthMsg('Υπάρχει ήδη λογαριασμός με αυτό το email.');
+  }
+  if(!data.session){
+    $('signupForm').reset();$('userHint').className='hint';$('userHint').textContent='';
+    setTab('login');
+    showAuthMsg('Σου στείλαμε email επιβεβαίωσης. Πάτα τον σύνδεσμο και μετά συνδέσου.','info');
+  }
+});
+
+$('loginForm').addEventListener('submit',async e=>{
+  e.preventDefault();hideAuthMsg();
+  const {error}=await sb.auth.signInWithPassword({email:$('liEmail').value.trim(),password:$('liPass').value});
+  if(error){
+    const m=error.message||'';
+    if(/invalid login/i.test(m))return showAuthMsg('Λάθος email ή κωδικός.');
+    if(/not confirmed/i.test(m))return showAuthMsg('Δεν έχεις επιβεβαιώσει ακόμα το email σου. Δες τα εισερχόμενα (και τα spam).');
+    return showAuthMsg(m);
+  }
+});
+
+$('forgotBtn').onclick=async()=>{
+  const email=$('liEmail').value.trim();
+  if(!email)return showAuthMsg('Γράψε πρώτα το email σου στο πεδίο από πάνω.');
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+  if(error)return showAuthMsg(error.message);
+  showAuthMsg('Αν υπάρχει λογαριασμός, θα λάβεις email για νέο κωδικό.','info');
+};
+
+$('resetForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const {error}=await sb.auth.updateUser({password:$('newPass').value});
+  if(error)return showAuthMsg(error.message);
+  toast('Ο κωδικός άλλαξε');
+  enterApp();
+});
+
+/* ================= SESSION ================= */
+let entering=false;
+async function enterApp(){
+  if(entering)return;entering=true;
+  const {data:{user}}=await sb.auth.getUser();
+  if(!user){entering=false;return showAuth();}
+  const {data:me,error}=await sb.from('profiles').select('id,username,display_name').eq('id',user.id).single();
+  if(error||!me){entering=false;toast('Δεν βρέθηκε προφίλ');await sb.auth.signOut();return;}
+  state.me=me;
+  $('auth').classList.add('hidden');$('app').classList.remove('hidden');
+  renderMe();
+  await loadConvs();
+  subscribe();
+  entering=false;
+}
+function showAuth(){
+  state.me=null;state.convs=[];state.activeId=null;
+  if(state.channel){sb.removeChannel(state.channel);state.channel=null;}
+  $('app').classList.add('hidden');$('auth').classList.remove('hidden');
+  document.title='Chatting';
+}
+sb.auth.onAuthStateChange((event,session)=>{
+  if(event==='PASSWORD_RECOVERY'){
+    $('app').classList.add('hidden');$('auth').classList.remove('hidden');
+    $('authTabs').classList.add('hidden');$('loginForm').classList.add('hidden');$('signupForm').classList.add('hidden');
+    $('resetForm').classList.remove('hidden');hideAuthMsg();
+    return;
+  }
+  if(event==='SIGNED_OUT'){showAuth();return;}
+  if((event==='SIGNED_IN'||event==='INITIAL_SESSION') && session && !state.me){
+    // defer to avoid calling supabase inside the callback
+    setTimeout(enterApp,0);
+  }
+  if(event==='INITIAL_SESSION' && !session){showAuth();setTab('login');}
+});
+
+/* ================= CONVERSATIONS ================= */
+function renderMe(){
+  $('meAvatar').outerHTML=`<div class="avatar sm" id="meAvatar" style="background:${colorFor(state.me.id)}">${esc(initials(nameOf(state.me)))}</div>`;
+}
+async function loadConvs(){
+  const {data,error}=await sb.rpc('my_conversations');
+  if(error){toast('Σφάλμα φόρτωσης συνομιλιών');return;}
+  state.convs=data||[];
+  if(state.activeId){
+    const c=state.convs.find(c=>c.id===state.activeId);
+    if(c)c.unread=0; else closeChat();
+  }
+  renderConvs();
+  if(state.activeId)renderChatHead();
+}
+const reloadConvs=debounce(loadConvs,250);
+
+function renderConvs(){
+  const list=$('convList');
+  const q=state.filter.trim().toLowerCase();
+  const items=state.convs.filter(c=>!q||convTitle(c).toLowerCase().includes(q)||
+    (c.members||[]).some(m=>m.username.includes(q)));
+  const total=state.convs.reduce((s,c)=>s+(c.id===state.activeId?0:(c.unread||0)),0);
+  document.title=total?`(${total}) Chatting`:'Chatting';
+  if(!state.convs.length){
+    list.innerHTML=`<div class="empty-list">Δεν έχεις συνομιλίες ακόμα.<br><br>
+      <button class="btn btn-ghost" onclick="openNewChat()">Βρες κάποιον να του μιλήσεις</button></div>`;return;
+  }
+  if(!items.length){list.innerHTML=`<div class="empty-list">Δεν βρέθηκε τίποτα.</div>`;return;}
+  list.innerHTML=items.map(c=>{
+    const title=convTitle(c);
+    let last=c.last_message??(c.is_group?'Η ομάδα δημιουργήθηκε':'Ξεκινήστε τη συζήτηση');
+    if(c.last_message!=null && c.last_sender===state.me.id) last='Εσύ: '+last;
+    else if(c.last_message!=null && c.is_group){
+      const s=(c.members||[]).find(m=>m.id===c.last_sender);
+      if(s) last=nameOf(s).split(' ')[0]+': '+last;
+    }
+    const unread=c.id===state.activeId?0:(c.unread||0);
+    return `<button class="conv${c.id===state.activeId?' on':''}${unread?' unread':''}" data-id="${c.id}">
+      ${avatarHTML(title,convKey(c),{grp:c.is_group})}
+      <div class="conv-body">
+        <div class="conv-top"><span class="conv-name">${esc(title)}</span><span class="conv-time">${fmtListTime(c.last_message_at)}</span></div>
+        <div class="conv-bottom"><span class="conv-last">${esc(last)}</span>${unread?`<span class="badge">${unread>99?'99+':unread}</span>`:''}</div>
+      </div></button>`;
+  }).join('');
+  list.querySelectorAll('.conv').forEach(b=>b.onclick=()=>openConv(b.dataset.id));
+}
+$('convFilter').addEventListener('input',e=>{state.filter=e.target.value;renderConvs();});
+
+/* ================= CHAT ================= */
+function activeConv(){return state.convs.find(c=>c.id===state.activeId);}
+function renderChatHead(){
+  const c=activeConv();if(!c)return;
+  const title=convTitle(c);
+  $('chatTitle').textContent=title;
+  $('chatAvatar').innerHTML=avatarHTML(title,convKey(c),{sm:true,grp:c.is_group});
+  if(c.is_group){
+    $('chatSub').textContent=`${(c.members||[]).length} μέλη · πάτα για πληροφορίες`;
+  }else{
+    const o=(c.members||[]).find(m=>m.id!==state.me.id);
+    $('chatSub').textContent=o?'@'+o.username:'';
+  }
+}
+async function openConv(id){
+  state.activeId=id;state.msgs=[];state.hasOlder=false;
+  $('placeholder').classList.add('hidden');$('chat').classList.remove('hidden');
+  $('app').classList.add('show-chat');
+  const c=activeConv();if(c)c.unread=0;
+  renderConvs();renderChatHead();
+  $('messages').innerHTML='';
+  const {data,error}=await sb.from('messages').select('id,conversation_id,sender_id,content,created_at')
+    .eq('conversation_id',id).order('created_at',{ascending:false}).limit(PAGE);
+  if(state.activeId!==id)return;
+  if(error){toast('Σφάλμα φόρτωσης μηνυμάτων');return;}
+  state.msgs=(data||[]).reverse();state.hasOlder=(data||[]).length===PAGE;
+  renderMessages(true);
+  sb.rpc('mark_read',{conv:id});
+  if(!isTouch)$('msgInput').focus();
+}
+function closeChat(){
+  state.activeId=null;state.msgs=[];
+  $('chat').classList.add('hidden');$('placeholder').classList.remove('hidden');
+  $('app').classList.remove('show-chat');
+  renderConvs();
+}
+$('backBtn').onclick=closeChat;
+
+async function loadOlder(){
+  if(!state.msgs.length)return;
+  const box=$('messages');const prevH=box.scrollHeight;
+  const {data}=await sb.from('messages').select('id,conversation_id,sender_id,content,created_at')
+    .eq('conversation_id',state.activeId).lt('created_at',state.msgs[0].created_at)
+    .order('created_at',{ascending:false}).limit(PAGE);
+  const older=(data||[]).reverse();
+  state.hasOlder=(data||[]).length===PAGE;
+  state.msgs=older.concat(state.msgs);
+  renderMessages(false);
+  box.scrollTop=box.scrollHeight-prevH;
+}
+
+function renderMessages(scrollBottom){
+  const c=activeConv();
+  const members=new Map((c?.members||[]).map(m=>[m.id,m]));
+  const box=$('messages');
+  let html=state.hasOlder?`<button class="btn btn-ghost older" id="olderBtn">Προηγούμενα μηνύματα</button>`:'';
+  if(!state.msgs.length){
+    html+=`<div class="placeholder"><p>Δεν υπάρχουν μηνύματα ακόμα. Πες ένα γεια! 👋</p></div>`;
+  }
+  state.msgs.forEach((m,i)=>{
+    const prev=state.msgs[i-1],next=state.msgs[i+1];
+    if(!prev||!sameDay(prev.created_at,m.created_at))html+=`<div class="day">${esc(fmtDay(m.created_at))}</div>`;
+    const mine=m.sender_id===state.me.id;
+    const newDay=!prev||!sameDay(prev.created_at,m.created_at);
+    const first=newDay||prev.sender_id!==m.sender_id||(new Date(m.created_at)-new Date(prev.created_at))>5*60e3;
+    const last=!next||next.sender_id!==m.sender_id||!sameDay(next.created_at,m.created_at)||(new Date(next.created_at)-new Date(m.created_at))>5*60e3;
+    const sender=members.get(m.sender_id);
+    html+=`<div class="row ${mine?'mine':'theirs'}${first?' first':''}">`+
+      (c?.is_group&&!mine&&first?`<div class="sender" style="color:${colorFor(m.sender_id||'x')}">${esc(sender?nameOf(sender):'Πρώην μέλος')}</div>`:'')+
+      `<div class="bubble">${linkify(m.content)}</div>`+
+      (last?`<div class="stamp">${fmtTime(m.created_at)}</div>`:'')+`</div>`;
+  });
+  box.innerHTML=html;
+  const ob=$('olderBtn');if(ob)ob.onclick=loadOlder;
+  if(scrollBottom)box.scrollTop=box.scrollHeight;
+}
+function appendMessage(m){
+  if(state.msgs.some(x=>x.id===m.id))return;
+  const box=$('messages');
+  const nearBottom=box.scrollHeight-box.scrollTop-box.clientHeight<120;
+  state.msgs.push(m);
+  renderMessages(false);
+  if(nearBottom||m.sender_id===state.me.id)box.scrollTop=box.scrollHeight;
+}
+
+// Composer
+const input=$('msgInput');
+function autosize(){input.style.height='auto';input.style.height=Math.min(input.scrollHeight,140)+'px';}
+input.addEventListener('input',()=>{autosize();$('sendBtn').disabled=!input.value.trim();});
+input.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&!e.shiftKey&&!isTouch&&!e.isComposing){e.preventDefault();$('composer').requestSubmit();}
+});
+$('composer').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const text=input.value.trim();
+  if(!text||!state.activeId)return;
+  const convId=state.activeId;
+  input.value='';autosize();$('sendBtn').disabled=true;
+  const {data,error}=await sb.from('messages').insert({conversation_id:convId,sender_id:state.me.id,content:text})
+    .select('id,conversation_id,sender_id,content,created_at').single();
+  if(error){toast('Το μήνυμα δεν στάλθηκε');input.value=text;autosize();$('sendBtn').disabled=false;return;}
+  if(state.activeId===convId)appendMessage(data);
+  const c=state.convs.find(c=>c.id===convId);
+  if(c){c.last_message=data.content;c.last_sender=data.sender_id;c.last_message_at=data.created_at;
+    state.convs.sort((a,b)=>new Date(b.last_message_at)-new Date(a.last_message_at));renderConvs();}
+});
+
+/* ================= REALTIME ================= */
+function subscribe(){
+  if(state.channel)sb.removeChannel(state.channel);
+  state.channel=sb.channel('chat-'+state.me.id)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages'},payload=>{
+      const m=payload.new;
+      if(m.conversation_id===state.activeId){
+        appendMessage(m);
+        if(document.visibilityState==='visible')sb.rpc('mark_read',{conv:m.conversation_id});
+      }
+      const c=state.convs.find(c=>c.id===m.conversation_id);
+      if(c){
+        c.last_message=m.content;c.last_sender=m.sender_id;c.last_message_at=m.created_at;
+        if(m.sender_id!==state.me.id&&m.conversation_id!==state.activeId)c.unread=(c.unread||0)+1;
+        state.convs.sort((a,b)=>new Date(b.last_message_at)-new Date(a.last_message_at));
+        renderConvs();
+      }else reloadConvs();
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'conversation_members'},()=>reloadConvs())
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'conversations'},()=>reloadConvs())
+    .subscribe();
+}
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'&&state.me){
+    if(state.activeId)sb.rpc('mark_read',{conv:state.activeId});
+    reloadConvs();
+  }
+});
+
+/* ================= MODALS ================= */
+function openModal(title,bodyHTML){
+  $('modalRoot').innerHTML=`<div class="overlay" id="overlay"><div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-head"><h2>${esc(title)}</h2><button class="icon-btn" id="closeModal" aria-label="Κλείσιμο">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+    <div class="modal-body">${bodyHTML}</div></div></div>`;
+  $('closeModal').onclick=closeModal;
+  $('overlay').onclick=e=>{if(e.target.id==='overlay')closeModal();};
+}
+function closeModal(){$('modalRoot').innerHTML='';}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+
+async function searchUsers(q,excludeIds=[]){
+  const clean=q.toLowerCase().replace(/[^a-z0-9_]/g,'');
+  if(clean.length<1)return [];
+  const {data}=await sb.from('profiles').select('id,username,display_name')
+    .ilike('username',`%${clean}%`).neq('id',state.me.id).order('username').limit(20);
+  return (data||[]).filter(p=>!excludeIds.includes(p.id));
+}
+function personHTML(p,{selectable=false,selected=false,extra=''}={}){
+  return `<button class="person${selected?' sel':''}" data-id="${p.id}">
+    ${avatarHTML(nameOf(p),p.id,{sm:true})}
+    <div class="n"><b>${esc(nameOf(p))}</b><span>@${esc(p.username)}</span></div>
+    ${extra}${selectable?`<span class="check">${selected?'✓':''}</span>`:''}</button>`;
+}
+
+// New 1-to-1 chat
+function openNewChat(){
+  openModal('Νέα συνομιλία',`
+    <input class="inp" id="userSearch" placeholder="Αναζήτηση με όνομα χρήστη" autocapitalize="none" spellcheck="false">
+    <div class="people" id="userResults"><div class="hint">Γράψε το όνομα χρήστη (π.χ. stathis)</div></div>`);
+  const inp=$('userSearch');inp.focus();
+  const run=debounce(async()=>{
+    const res=await searchUsers(inp.value);
+    const box=$('userResults');if(!box)return;
+    if(!inp.value.trim()){box.innerHTML='<div class="hint">Γράψε το όνομα χρήστη (π.χ. stathis)</div>';return;}
+    box.innerHTML=res.length?res.map(p=>personHTML(p)).join(''):'<div class="hint">Δεν βρέθηκε χρήστης.</div>';
+    box.querySelectorAll('.person').forEach(b=>b.onclick=async()=>{
+      b.disabled=true;
+      const {data:convId,error}=await sb.rpc('get_or_create_direct',{other_user:b.dataset.id});
+      if(error){toast('Δεν ξεκίνησε η συνομιλία');b.disabled=false;return;}
+      closeModal();await loadConvs();openConv(convId);
+    });
+  },250);
+  inp.addEventListener('input',run);
+}
+$('newChatBtn').onclick=openNewChat;
+
+// Multi-select people picker (used for new group & add members)
+function peoplePicker({excludeIds=[],onChange}){
+  const selected=new Map();
+  const renderChips=()=>{
+    $('chips').innerHTML=[...selected.values()].map(p=>`<span class="chip">@${esc(p.username)}<button data-id="${p.id}" aria-label="Αφαίρεση">×</button></span>`).join('');
+    $('chips').querySelectorAll('button').forEach(b=>b.onclick=()=>{selected.delete(b.dataset.id);renderChips();run();onChange(selected);});
+  };
+  const run=debounce(async()=>{
+    const inp=$('pickSearch');const box=$('pickResults');if(!inp||!box)return;
+    if(!inp.value.trim()){box.innerHTML='';return;}
+    const res=await searchUsers(inp.value,excludeIds);
+    box.innerHTML=res.length?res.map(p=>personHTML(p,{selectable:true,selected:selected.has(p.id)})).join(''):'<div class="hint">Δεν βρέθηκε χρήστης.</div>';
+    box.querySelectorAll('.person').forEach(b=>b.onclick=()=>{
+      const p=res.find(x=>x.id===b.dataset.id);
+      if(selected.has(p.id))selected.delete(p.id);else selected.set(p.id,p);
+      renderChips();run();onChange(selected);
+    });
+  },250);
+  $('pickSearch').addEventListener('input',run);
+  return selected;
+}
+const PICKER_HTML=`<input class="inp" id="pickSearch" placeholder="Πρόσθεσε άτομα με όνομα χρήστη" autocapitalize="none" spellcheck="false">
+  <div class="chips" id="chips"></div><div class="people" id="pickResults"></div>`;
+
+// New group
+function openNewGroup(){
+  openModal('Νέα ομάδα',`
+    <label class="f" for="groupName" style="margin-top:0">Όνομα ομάδας</label>
+    <input class="inp" id="groupName" maxlength="60" placeholder="π.χ. Παρέα Σαββατοκύριακου">
+    <label class="f">Μέλη</label>${PICKER_HTML}
+    <button class="btn btn-primary" id="createGroup" disabled>Δημιουργία ομάδας</button>`);
+  let sel=new Map();
+  const upd=()=>{$('createGroup').disabled=!$('groupName').value.trim()||sel.size===0;};
+  peoplePicker({onChange:s=>{sel=s;upd();}});
+  $('groupName').addEventListener('input',upd);$('groupName').focus();
+  $('createGroup').onclick=async()=>{
+    $('createGroup').disabled=true;
+    const {data:convId,error}=await sb.rpc('create_group',{group_name:$('groupName').value.trim(),member_ids:[...sel.keys()]});
+    if(error){toast('Η ομάδα δεν δημιουργήθηκε');upd();return;}
+    closeModal();await loadConvs();openConv(convId);
+  };
+}
+$('newGroupBtn').onclick=openNewGroup;
+
+// Chat info (group details / user details)
+function openChatInfo(){
+  const c=activeConv();if(!c)return;
+  if(!c.is_group){
+    const o=(c.members||[]).find(m=>m.id!==state.me.id);
+    openModal('Πληροφορίες',`<div style="text-align:center;padding:10px 0">
+      <div style="display:flex;justify-content:center">${avatarHTML(nameOf(o),o?.id||'x')}</div>
+      <h3 style="margin:10px 0 2px">${esc(nameOf(o))}</h3><div class="hint">${o?'@'+esc(o.username):''}</div></div>`);
+    return;
+  }
+  const myRole=(c.members||[]).find(m=>m.id===state.me.id)?.role;
+  const isAdmin=myRole==='admin';
+  openModal('Πληροφορίες ομάδας',`
+    ${isAdmin?`<label class="f" for="renameInp" style="margin-top:0">Όνομα ομάδας</label>
+      <div style="display:flex;gap:8px"><input class="inp" id="renameInp" maxlength="60" value="${esc(c.name||'')}">
+      <button class="btn btn-ghost" id="renameBtn">Αποθήκευση</button></div>`
+      :`<h3 style="margin:0 0 4px">${esc(c.name||'Ομάδα')}</h3>`}
+    <div class="section-t">${(c.members||[]).length} μέλη</div>
+    <div class="people" style="margin-top:0">${(c.members||[]).map(m=>personHTML(m,{extra:m.role==='admin'?'<span class="role">διαχειριστής</span>':''})).join('')}</div>
+    ${isAdmin?`<div class="section-t">Προσθήκη μελών</div>${PICKER_HTML}
+      <button class="btn btn-primary" id="addMembers" disabled>Προσθήκη</button>`:''}
+    <div style="margin-top:20px;text-align:center"><button class="btn btn-danger" id="leaveBtn">Αποχώρηση από την ομάδα</button></div>`);
+  $('modalRoot').querySelectorAll('.people .person').forEach(b=>b.onclick=async()=>{
+    if(b.dataset.id===state.me.id)return;
+    const {data:convId}=await sb.rpc('get_or_create_direct',{other_user:b.dataset.id});
+    if(convId){closeModal();await loadConvs();openConv(convId);}
+  });
+  if(isAdmin){
+    $('renameBtn').onclick=async()=>{
+      const v=$('renameInp').value.trim();if(!v)return;
+      const {error}=await sb.rpc('rename_group',{conv:c.id,new_name:v});
+      if(error)return toast('Δεν άλλαξε το όνομα');
+      toast('Το όνομα άλλαξε');await loadConvs();
+    };
+    let sel=new Map();
+    peoplePicker({excludeIds:(c.members||[]).map(m=>m.id),onChange:s=>{sel=s;$('addMembers').disabled=s.size===0;}});
+    $('addMembers').onclick=async()=>{
+      $('addMembers').disabled=true;
+      const {error}=await sb.rpc('add_group_members',{conv:c.id,member_ids:[...sel.keys()]});
+      if(error){toast('Δεν προστέθηκαν');$('addMembers').disabled=false;return;}
+      toast('Προστέθηκαν');closeModal();await loadConvs();
+    };
+  }
+  $('leaveBtn').onclick=async()=>{
+    if(!confirm('Σίγουρα θες να φύγεις από την ομάδα;'))return;
+    const {error}=await sb.rpc('leave_group',{conv:c.id});
+    if(error)return toast('Κάτι πήγε στραβά');
+    closeModal();closeChat();await loadConvs();
+  };
+}
+$('chatTitleBtn').onclick=openChatInfo;
+$('chatAvatar').onclick=openChatInfo;
+
+// Profile
+function openProfile(){
+  const me=state.me;
+  openModal('Το προφίλ μου',`
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+      ${avatarHTML(nameOf(me),me.id)}<div><b>${esc(nameOf(me))}</b><div class="hint" style="margin:0">@${esc(me.username)}</div></div></div>
+    <div class="hint">Οι άλλοι σε βρίσκουν με το όνομα χρήστη <b>@${esc(me.username)}</b>.</div>
+    <label class="f" for="dispName">Εμφανιζόμενο όνομα</label>
+    <input class="inp" id="dispName" maxlength="50" value="${esc(me.display_name||'')}">
+    <div class="hint">Αυτό βλέπουν οι άλλοι στις συνομιλίες. Μπορεί να έχει και ελληνικά.</div>
+    <button class="btn btn-primary" id="saveProfile">Αποθήκευση</button>
+    <div style="margin-top:16px;text-align:center"><button class="btn btn-danger" id="logoutBtn">Αποσύνδεση</button></div>`);
+  $('saveProfile').onclick=async()=>{
+    const v=$('dispName').value.trim()||me.username;
+    const {error}=await sb.from('profiles').update({display_name:v}).eq('id',me.id);
+    if(error)return toast('Δεν αποθηκεύτηκε');
+    state.me.display_name=v;renderMe();closeModal();toast('Αποθηκεύτηκε');loadConvs();
+  };
+  $('logoutBtn').onclick=async()=>{closeModal();await sb.auth.signOut();};
+}
+$('profileBtn').onclick=openProfile;
+</script>
+</body>
+</html>
