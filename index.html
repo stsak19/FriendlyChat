@@ -10,6 +10,10 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="FriendlyChat">
 <title>FriendlyChat</title>
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -36,7 +40,9 @@ svg{display:block}
 /* ---------- Auth ---------- */
 #auth{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px 16px}
 .auth-card{width:100%;max-width:380px;padding:8px 6px}
-.brand{font-weight:800;font-size:30px;letter-spacing:-.02em;text-align:center;margin-bottom:6px}
+.brand{font-weight:800;font-size:30px;letter-spacing:-.02em;text-align:center;margin-bottom:6px;display:flex;flex-direction:column;align-items:center;gap:14px}
+.logo-mark{width:96px;height:96px;filter:drop-shadow(0 6px 18px rgba(0,0,0,.25))}
+@media (prefers-color-scheme: dark){.logo-mark{border-radius:22%;box-shadow:0 0 0 1px #34343c;filter:none}}
 .auth-sub{color:var(--muted);margin:0 0 22px;text-align:center}
 .tabs{display:flex;background:var(--field);border-radius:12px;padding:4px;margin-bottom:16px}
 .tabs button{flex:1;padding:9px;border-radius:9px;color:var(--muted);font-weight:600}
@@ -207,7 +213,17 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;backgrou
 <!-- ============ AUTH ============ -->
 <section id="auth" class="hidden">
   <div class="auth-card">
-    <div class="brand">FriendlyChat</div>
+    <div class="brand"><svg class="logo-mark" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#000"/>
+  <defs>
+    <path id="bubble" d="M156 128 H356 A56 56 0 0 1 412 184 V288 A56 56 0 0 1 356 344 H214 L138 404 L152 344 A56 56 0 0 1 100 288 V184 A56 56 0 0 1 156 128 Z"/>
+  </defs>
+  <use href="#bubble" fill="#E8338A" transform="translate(16 16)"/>
+  <use href="#bubble" fill="#FFF35C"/>
+  <path transform="translate(236 268) rotate(37.1)"
+        d="M14 -280 L64 -280 L30 -150 L78 -150 L0 0 L10 -118 L-40 -118 Z"
+        fill="#FFF35C" stroke="#000" stroke-width="16" stroke-linejoin="round" paint-order="stroke fill"/>
+</svg>FriendlyChat</div>
     <p class="auth-sub">Μίλα με τους φίλους σου, ένας-προς-έναν ή σε ομάδες.</p>
     <div class="tabs" id="authTabs">
       <button data-tab="login" class="on">Σύνδεση</button>

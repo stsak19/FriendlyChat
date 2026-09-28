@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#000"/>
+  <defs>
+    <path id="bubble" d="M156 128 H356 A56 56 0 0 1 412 184 V288 A56 56 0 0 1 356 344 H214 L138 404 L152 344 A56 56 0 0 1 100 288 V184 A56 56 0 0 1 156 128 Z"/>
+  </defs>
+  <use href="#bubble" fill="#E8338A" transform="translate(16 16)"/>
+  <use href="#bubble" fill="#FFF35C"/>
+  <path transform="translate(236 268) rotate(37.1)"
+        d="M14 -280 L64 -280 L30 -150 L78 -150 L0 0 L10 -118 L-40 -118 Z"
+        fill="#FFF35C" stroke="#000" stroke-width="16" stroke-linejoin="round" paint-order="stroke fill"/>
+</svg>
