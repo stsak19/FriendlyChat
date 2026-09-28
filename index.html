@@ -50,6 +50,7 @@ svg{display:block}
 label.f{display:block;font-size:13px;font-weight:600;margin:12px 0 6px}
 .inp{width:100%;padding:12px 14px;border:1px solid transparent;border-radius:12px;background:var(--field);outline:none}
 .inp:focus{border-color:var(--accent)}
+textarea.inp{resize:none;line-height:1.4}
 .hint{font-size:12px;color:var(--muted);margin-top:5px;min-height:16px}
 .hint.ok{color:var(--ok)}.hint.bad{color:var(--danger)}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:11px 16px;border-radius:12px;font-weight:600;white-space:nowrap}
@@ -116,7 +117,9 @@ aside{width:400px;flex-shrink:0;border-right:1px solid var(--line);display:flex;
 .sect{font-weight:700;font-size:15px;padding:14px 16px 6px}
 
 /* avatars */
-.avatar{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:700;flex-shrink:0;font-size:19px;text-transform:uppercase}
+.avatar{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:700;flex-shrink:0;font-size:19px;text-transform:uppercase;overflow:hidden}
+.avatar{position:relative}
+.avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;background:var(--field)}
 .avatar.lg{width:66px;height:66px;font-size:22px}
 .avatar.xl{width:92px;height:92px;font-size:32px}
 .avatar.sm{width:36px;height:36px;font-size:14px}
@@ -175,6 +178,7 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;backgrou
 .chat-intro{text-align:center;padding:24px 10px 8px}
 .chat-intro b{display:block;font-size:18px;margin-top:10px}
 .chat-intro span{color:var(--muted);font-size:14px}
+.chat-intro .bio{display:block;margin:6px auto 0;max-width:320px;color:var(--text);white-space:pre-wrap}
 
 /* sheets */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
@@ -192,8 +196,16 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;backgrou
 .profile-card .avatar{margin:0 auto}
 .profile-card h3{margin:12px 0 2px;font-size:20px}
 .profile-card .u{color:var(--muted)}
+.profile-card .bio{margin:10px auto 0;max-width:340px;white-space:pre-wrap;overflow-wrap:anywhere}
 .profile-card .btns{display:flex;gap:8px;margin-top:18px}
 .profile-card .btns .btn{flex:1}
+.photo-edit{display:flex;flex-direction:column;align-items:center;gap:8px;padding:4px 16px 4px}
+.photo-edit .pic{position:relative}
+.photo-edit .cam{position:absolute;right:-2px;bottom:-2px;width:32px;height:32px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;border:3px solid var(--panel)}
+.photo-edit .cam svg{width:16px;height:16px}
+.photo-edit .links{display:flex;gap:16px;font-size:14px}
+.photo-edit.busy .pic{opacity:.5}
+.counter{float:right;font-weight:400;color:var(--muted)}
 .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;z-index:60;max-width:90vw}
 
 @media (max-width:760px){
@@ -328,6 +340,8 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const USERNAME_RE = /^[a-z0-9_]{3,24}$/;
 const PAGE = 50;
+const BIO_MAX = 150;
+const PROFILE_COLS = 'id,username,display_name,avatar_url,bio';
 const $ = (id) => document.getElementById(id);
 const isTouch = matchMedia('(pointer:coarse)').matches;
 
@@ -350,7 +364,15 @@ function linkify(s){return esc(s).replace(/(https?:\/\/[^\s<]+[^\s<.,;:!?)\]'"])
 const COLORS=['#4c5bf5','#0e9f6e','#e0662f','#c2417c','#2b7bd8','#8a4fd6','#d19a0b','#138a99','#d6455d'];
 function colorFor(key){let h=0;for(const c of String(key))h=(h*31+c.charCodeAt(0))>>>0;return COLORS[h%COLORS.length];}
 function initials(name){const p=String(name||'?').trim().split(/[\s_]+/).filter(Boolean);return ((p[0]?.[0]||'?')+(p[1]?.[0]||'')).toUpperCase();}
-function av(name,key,size=''){return `<div class="avatar ${size}" style="background:${colorFor(key)}">${esc(initials(name))}</div>`;}
+function safeAvatar(url){return typeof url==='string'&&url.startsWith(SUPABASE_URL+'/storage/v1/object/public/avatars/')?url:null;}
+function av(name,key,size='',url=null){
+  const u=safeAvatar(url);
+  // initials stay underneath; if the photo fails to load it just disappears
+  if(u)return `<div class="avatar ${size}" style="background:${colorFor(key)}">${esc(initials(name))}<img src="${esc(u)}" alt="" loading="lazy" onerror="this.remove()"></div>`;
+  return `<div class="avatar ${size}" style="background:${colorFor(key)}">${esc(initials(name))}</div>`;
+}
+// avatar from a profile object (uses photo when there is one)
+function avP(p,size='',fallbackKey='x'){return av(nameOf(p),p?.id||fallbackKey,size,p?.avatar_url);}
 function nameOf(p){return p?(p.display_name||p.username):'Διαγραμμένος χρήστης';}
 function firstName(p){return nameOf(p).split(' ')[0];}
 function fmtTime(d){return new Date(d).toLocaleTimeString('el-GR',{hour:'2-digit',minute:'2-digit'});}
@@ -378,10 +400,10 @@ function convTitle(c){
 function convAvatar(c,small=false){
   if(c.is_group){
     const o=others(c);const a=o[0]||state.me,b=o[1]||state.me;
-    return `<div class="stack${small?' sm':''}">${av(nameOf(a),a.id)}${av(nameOf(b),b.id)}</div>`;
+    return `<div class="stack${small?' sm':''}">${avP(a)}${avP(b)}</div>`;
   }
   const o=others(c)[0];
-  return av(nameOf(o),o?.id||c.id,small?'sm':'');
+  return avP(o,small?'sm':'',c.id);
 }
 function relation(uid){
   if(state.friends.some(f=>f.id===uid))return 'friends';
@@ -390,6 +412,7 @@ function relation(uid){
   return 'none';
 }
 const ICON_PLUS='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
+const ICON_CAM='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3Z"/><circle cx="12" cy="13" r="3.5"/></svg>';
 
 /* ================= AUTH ================= */
 function showAuthMsg(t,type='err'){const b=$('authMsg');b.textContent=t;b.className='msg-box '+type;}
@@ -468,7 +491,7 @@ async function enterApp(){
   if(entering)return;entering=true;
   const {data:{user}}=await sb.auth.getUser();
   if(!user){entering=false;return showAuth();}
-  const {data:me,error}=await sb.from('profiles').select('id,username,display_name').eq('id',user.id).single();
+  const {data:me,error}=await sb.from('profiles').select(PROFILE_COLS).eq('id',user.id).single();
   if(error||!me){entering=false;toast('Δεν βρέθηκε προφίλ');await sb.auth.signOut();return;}
   state.me=me;
   $('auth').classList.add('hidden');$('app').classList.remove('hidden');
@@ -505,7 +528,7 @@ async function loadConvs(){
 async function loadSocial(){
   const [f,r]=await Promise.all([
     sb.rpc('my_friends'),
-    sb.from('friend_requests').select('sender_id,receiver_id,status,created_at,sender:profiles!friend_requests_sender_id_fkey(id,username,display_name),receiver:profiles!friend_requests_receiver_id_fkey(id,username,display_name)').eq('status','pending')
+    sb.from('friend_requests').select(`sender_id,receiver_id,status,created_at,sender:profiles!friend_requests_sender_id_fkey(${PROFILE_COLS}),receiver:profiles!friend_requests_receiver_id_fkey(${PROFILE_COLS})`).eq('status','pending')
   ]);
   state.friends=f.data||[];
   const reqs=r.data||[];
@@ -519,7 +542,7 @@ const reloadSocial=debounce(loadSocial,250);
 
 /* ================= HOME ================= */
 function renderMe(){
-  $('meAvatar').innerHTML=av(nameOf(state.me),state.me.id,'xs');
+  $('meAvatar').innerHTML=avP(state.me,'xs');
   $('meName').textContent=state.me.username;
 }
 function renderHome(){
@@ -534,7 +557,7 @@ function renderFriends(){
   let html=`<button class="friend" id="addFriendsBtn"><div class="add-circle">${ICON_PLUS}</div><span class="nm" style="color:var(--muted)">Βρες φίλους</span></button>`;
   html+=state.friends.map(f=>{
     const c=directWith(f.id);const unread=c&&c.unread&&c.id!==state.activeId;
-    return `<button class="friend" data-id="${f.id}"><div class="ring${unread?' on':''}">${av(nameOf(f),f.id,'lg')}</div><span class="nm">${esc(firstName(f))}</span></button>`;
+    return `<button class="friend" data-id="${f.id}"><div class="ring${unread?' on':''}">${avP(f,'lg')}</div><span class="nm">${esc(firstName(f))}</span></button>`;
   }).join('');
   row.innerHTML=html;
   $('addFriendsBtn').onclick=()=>{$('search').focus();};
@@ -631,7 +654,7 @@ const runSearch=debounce(async()=>{
   const clean=q.replace(/[^a-z0-9_]/g,'');
   let people=[];
   if(clean){
-    const {data}=await sb.from('profiles').select('id,username,display_name').ilike('username',`%${clean}%`).neq('id',state.me.id).order('username').limit(25);
+    const {data}=await sb.from('profiles').select(PROFILE_COLS).ilike('username',`%${clean}%`).neq('id',state.me.id).order('username').limit(25);
     people=data||[];
   }
   if(seq!==searchSeq)return;
@@ -639,7 +662,7 @@ const runSearch=debounce(async()=>{
   let html='';
   if(convs.length)html+=`<div class="sect">Συνομιλίες</div>`+convs.map(convRowHTML).join('');
   html+=`<div class="sect">Άτομα</div>`;
-  html+=people.length?people.map(p=>`<div class="person" data-id="${p.id}" role="button">${av(nameOf(p),p.id,'sm')}
+  html+=people.length?people.map(p=>`<div class="person" data-id="${p.id}" role="button">${avP(p,'sm')}
       <div class="n"><b>${esc(p.username)}</b><span>${esc(nameOf(p))}</span></div>
       <div class="actions">${actionBtnHTML(p.id)}</div></div>`).join('')
     :`<div class="empty" style="padding-top:10px">${clean?'Δεν βρέθηκε κανείς με αυτό το όνομα.':'Τα ονόματα χρηστών έχουν μόνο λατινικά γράμματα, αριθμούς και _.'}</div>`;
@@ -668,6 +691,8 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet();});
 function openUser(p){
   if(!p)return;
   const draw=()=>{
+    // use the freshest copy we have (friends list is reloaded more often)
+    p=state.friends.find(f=>f.id===p.id)||p;
     const r=relation(p.id);
     let btns='';
     if(r==='friends')btns=`<button class="btn btn-primary" data-act="msg" data-id="${p.id}">Μήνυμα</button><button class="btn btn-soft" id="unfriend">Φίλοι ✓</button>`;
@@ -675,7 +700,8 @@ function openUser(p){
     else if(r==='incoming')btns=`<button class="btn btn-primary" data-act="accept" data-id="${p.id}">Αποδοχή</button><button class="btn btn-soft" data-act="decline" data-id="${p.id}">Διαγραφή</button>`;
     else btns=`<button class="btn btn-primary" data-act="add" data-id="${p.id}">Αποστολή αιτήματος φιλίας</button>`;
     const note=r==='incoming'?`<p class="hint" style="margin-top:10px">Σου έστειλε αίτημα φιλίας.</p>`:r==='none'?`<p class="hint" style="margin-top:10px">Για να μιλήσετε, πρέπει να δεχτεί το αίτημά σου.</p>`:'';
-    $('sheetBody').innerHTML=`<div class="profile-card">${av(nameOf(p),p.id,'xl')}<h3>${esc(nameOf(p))}</h3><div class="u">@${esc(p.username)}</div>
+    $('sheetBody').innerHTML=`<div class="profile-card">${avP(p,'xl')}<h3>${esc(nameOf(p))}</h3><div class="u">@${esc(p.username)}</div>
+      ${p.bio?`<p class="bio">${linkify(p.bio)}</p>`:''}
       <div class="btns">${btns}</div>${note}</div>`;
     wireActions($('sheetBody'));
     const uf=$('unfriend');
@@ -690,13 +716,13 @@ function openRequests(){
   const draw=()=>{
     const inc=state.incoming,out=state.outgoing;
     let html=`<div class="sect">Σου έστειλαν</div>`;
-    html+=inc.length?inc.map(p=>`<div class="person" data-id="${p.id}" role="button">${av(nameOf(p),p.id,'sm')}
+    html+=inc.length?inc.map(p=>`<div class="person" data-id="${p.id}" role="button">${avP(p,'sm')}
       <div class="n"><b>${esc(p.username)}</b><span>${esc(nameOf(p))}</span></div>
       <div class="actions"><button class="btn btn-primary btn-sm" data-act="accept" data-id="${p.id}">Αποδοχή</button>
       <button class="btn btn-soft btn-sm" data-act="decline" data-id="${p.id}">Διαγραφή</button></div></div>`).join('')
       :`<div class="empty" style="padding:8px 16px 16px">Δεν έχεις νέα αιτήματα.</div>`;
     html+=`<div class="sect">Έστειλες</div>`;
-    html+=out.length?out.map(p=>`<div class="person" data-id="${p.id}" role="button">${av(nameOf(p),p.id,'sm')}
+    html+=out.length?out.map(p=>`<div class="person" data-id="${p.id}" role="button">${avP(p,'sm')}
       <div class="n"><b>${esc(p.username)}</b><span>${esc(nameOf(p))}</span></div>
       <div class="actions"><button class="btn btn-soft btn-sm" data-act="cancel" data-id="${p.id}">Ακύρωση</button></div></div>`).join('')
       :`<div class="empty" style="padding:8px 16px 16px">Κανένα αίτημα σε αναμονή.</div>`;
@@ -720,7 +746,7 @@ function openCompose(groupMode=false){
     const fr=state.friends.filter(f=>!q||f.username.includes(q)||nameOf(f).toLowerCase().includes(q));
     $('fList').innerHTML=!state.friends.length
       ?`<div class="empty"><b>Δεν έχεις φίλους ακόμα</b>Βρες άτομα από την αναζήτηση και στείλε τους αίτημα.</div>`
-      :(fr.length?fr.map(f=>`<button class="person${sel.has(f.id)?' sel':''}" data-id="${f.id}">${av(nameOf(f),f.id,'sm')}
+      :(fr.length?fr.map(f=>`<button class="person${sel.has(f.id)?' sel':''}" data-id="${f.id}">${avP(f,'sm')}
         <div class="n"><b>${esc(nameOf(f))}</b><span>@${esc(f.username)}</span></div><span class="check">${sel.has(f.id)?'✓':''}</span></button>`).join('')
         :`<div class="empty">Δεν βρέθηκε.</div>`);
     $('fList').querySelectorAll('.person').forEach(b=>b.onclick=()=>{
@@ -761,12 +787,12 @@ function openGroupInfo(c){
       <div style="display:flex;gap:8px"><input class="inp" id="renameInp" maxlength="60" value="${esc(c.name||'')}"><button class="btn btn-soft" id="renameBtn">Αποθήκευση</button></div></div>`
       :`<h3 style="text-align:center;margin:0">${esc(c.name||'Ομάδα')}</h3>`;
     html+=`<div class="sect">${memberIds.length} μέλη</div>`;
-    html+=(c.members||[]).map(m=>`<button class="person" data-id="${m.id}">${av(nameOf(m),m.id,'sm')}
+    html+=(c.members||[]).map(m=>`<button class="person" data-id="${m.id}">${avP(m,'sm')}
       <div class="n"><b>${esc(nameOf(m))}${m.id===state.me.id?' (εσύ)':''}</b><span>@${esc(m.username)}</span></div>
       ${m.role==='admin'?'<span class="role">διαχειριστής</span>':''}</button>`).join('');
     if(isAdmin){
       html+=`<div class="sect">Πρόσθεσε φίλους</div>`;
-      html+=addable.length?addable.map(f=>`<button class="person add${sel.has(f.id)?' sel':''}" data-id="${f.id}">${av(nameOf(f),f.id,'sm')}
+      html+=addable.length?addable.map(f=>`<button class="person add${sel.has(f.id)?' sel':''}" data-id="${f.id}">${avP(f,'sm')}
         <div class="n"><b>${esc(nameOf(f))}</b><span>@${esc(f.username)}</span></div><span class="check">${sel.has(f.id)?'✓':''}</span></button>`).join('')
         +`<div class="sheet-pad"><button class="btn btn-primary btn-block" id="addBtn" ${sel.size?'':'disabled'}>Προσθήκη${sel.size?` (${sel.size})`:''}</button></div>`
         :`<div class="empty" style="padding:6px 16px">Όλοι οι φίλοι σου είναι ήδη μέσα.</div>`;
@@ -774,7 +800,7 @@ function openGroupInfo(c){
     html+=`<div style="text-align:center;margin-top:18px"><button class="btn-danger" id="leaveBtn">Αποχώρηση από την ομάδα</button></div>`;
     $('sheetBody').innerHTML=html;
     $('sheetBody').querySelectorAll('.person:not(.add)').forEach(b=>b.onclick=()=>{
-      if(b.dataset.id===state.me.id)return;
+      if(b.dataset.id===state.me.id)return openMyProfile();
       openUser((c.members||[]).find(m=>m.id===b.dataset.id));
     });
     $('sheetBody').querySelectorAll('.person.add').forEach(b=>b.onclick=()=>{
@@ -803,21 +829,142 @@ function openGroupInfo(c){
   openSheet('Πληροφορίες ομάδας','');draw();sheetRefresher=draw;
 }
 
-// My profile
+/* ================= MY PROFILE (edit) ================= */
+// Shrink + crop the picked photo to a 512x512 JPEG before upload
+function squareJpeg(file,size=512){
+  return new Promise((resolve,reject)=>{
+    const url=URL.createObjectURL(file);const img=new Image();
+    img.onload=()=>{
+      const s=Math.min(img.naturalWidth,img.naturalHeight);
+      const sx=(img.naturalWidth-s)/2,sy=(img.naturalHeight-s)/2;
+      const out=Math.min(size,s);
+      const cv=document.createElement('canvas');cv.width=cv.height=out;
+      const ctx=cv.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,out,out);
+      ctx.drawImage(img,sx,sy,s,s,0,0,out,out);
+      URL.revokeObjectURL(url);
+      cv.toBlob(b=>b?resolve(b):reject(new Error('blob')),'image/jpeg',0.86);
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('image'));};
+    img.src=url;
+  });
+}
+async function clearOldAvatars(keepPath=null){
+  const {data}=await sb.storage.from('avatars').list(state.me.id,{limit:100});
+  const old=(data||[]).map(f=>`${state.me.id}/${f.name}`).filter(p=>p!==keepPath);
+  if(old.length)await sb.storage.from('avatars').remove(old);
+}
+function patchMeEverywhere(changes){
+  Object.assign(state.me,changes);
+  // my copy inside conversation member lists
+  state.convs.forEach(c=>(c.members||[]).forEach(m=>{if(m.id===state.me.id)Object.assign(m,changes);}));
+  renderMe();renderHome();if(state.activeId){renderChatHead();renderMessages(false);}
+}
+
 function openMyProfile(){
   const me=state.me;
-  openSheet('Το προφίλ μου',`<div class="profile-card">${av(nameOf(me),me.id,'xl')}<h3>${esc(nameOf(me))}</h3><div class="u">@${esc(me.username)}</div>
-    <p class="hint" style="margin-top:8px">${state.friends.length} φίλοι · Οι άλλοι σε βρίσκουν ως <b>${esc(me.username)}</b></p></div>
-    <div class="sheet-pad"><label class="f" for="dispName">Εμφανιζόμενο όνομα</label>
-    <input class="inp" id="dispName" maxlength="50" value="${esc(me.display_name||'')}">
-    <div class="hint">Αυτό βλέπουν οι φίλοι σου. Μπορεί να έχει και ελληνικά.</div>
-    <button class="btn btn-primary btn-block" id="saveProfile">Αποθήκευση</button>
-    <div style="text-align:center;margin-top:18px"><button class="btn-danger" id="logoutBtn">Αποσύνδεση</button></div></div>`);
+  let pendingPhoto; // undefined = no change, null = remove, Blob = new photo
+  let unameOk=true;
+  openSheet('Επεξεργασία προφίλ',`
+    <div class="photo-edit" id="photoBox">
+      <button class="pic" id="picBtn" aria-label="Αλλαγή φωτογραφίας"><span id="picPreview">${avP(me,'xl')}</span><span class="cam">${ICON_CAM}</span></button>
+      <div class="links"><button class="btn-link" id="pickPhoto">Αλλαγή φωτογραφίας</button><button class="btn-danger" id="removePhoto" ${me.avatar_url?'':'hidden'}>Αφαίρεση</button></div>
+      <input type="file" id="photoFile" accept="image/*" hidden>
+    </div>
+    <div class="sheet-pad">
+      <label class="f" for="dispName">Όνομα</label>
+      <input class="inp" id="dispName" maxlength="50" value="${esc(me.display_name||'')}">
+      <div class="hint">Αυτό βλέπουν οι φίλοι σου. Μπορεί να έχει και ελληνικά.</div>
+
+      <label class="f" for="editUser">Όνομα χρήστη</label>
+      <input class="inp" id="editUser" maxlength="24" autocapitalize="none" spellcheck="false" autocomplete="off" value="${esc(me.username)}">
+      <div class="hint" id="editUserHint">Με αυτό σε βρίσκουν στην αναζήτηση.</div>
+
+      <label class="f" for="editBio">Βιογραφικό <span class="counter" id="bioCount"></span></label>
+      <textarea class="inp" id="editBio" rows="3" maxlength="${BIO_MAX}" placeholder="Γράψε λίγα λόγια για σένα">${esc(me.bio||'')}</textarea>
+
+      <p class="hint" style="margin-top:12px">${state.friends.length} φίλοι</p>
+      <button class="btn btn-primary btn-block" id="saveProfile">Αποθήκευση</button>
+      <div style="text-align:center;margin-top:18px"><button class="btn-danger" id="logoutBtn">Αποσύνδεση</button></div>
+    </div>`);
+
+  const bio=$('editBio');
+  const count=()=>{$('bioCount').textContent=`${bio.value.length}/${BIO_MAX}`;};
+  bio.addEventListener('input',count);count();
+
+  // photo
+  const pick=()=>$('photoFile').click();
+  $('picBtn').onclick=pick;$('pickPhoto').onclick=pick;
+  $('photoFile').onchange=async e=>{
+    const f=e.target.files[0];e.target.value='';
+    if(!f)return;
+    if(!f.type.startsWith('image/'))return toast('Διάλεξε μια εικόνα');
+    try{
+      pendingPhoto=await squareJpeg(f);
+      const url=URL.createObjectURL(pendingPhoto);
+      $('picPreview').innerHTML=`<div class="avatar xl"><img src="${url}" alt=""></div>`;
+      $('removePhoto').hidden=false;
+    }catch{toast('Δεν άνοιξε η εικόνα. Δοκίμασε JPG ή PNG.');}
+  };
+  $('removePhoto').onclick=()=>{
+    pendingPhoto=null;
+    $('picPreview').innerHTML=av(nameOf(me),me.id,'xl');
+    $('removePhoto').hidden=true;
+  };
+
+  // username
+  const uHint=$('editUserHint');
+  const checkU=debounce(async v=>{
+    if(v===me.username){unameOk=true;uHint.className='hint';uHint.textContent='Με αυτό σε βρίσκουν στην αναζήτηση.';return;}
+    if(!USERNAME_RE.test(v)){unameOk=false;uHint.className='hint bad';uHint.textContent=v.length<3?'Τουλάχιστον 3 χαρακτήρες':'Μόνο λατινικά γράμματα, αριθμοί και _';return;}
+    const {data}=await sb.rpc('username_available',{u:v});
+    if($('editUser')?.value!==v)return;
+    unameOk=!!data;uHint.className='hint '+(data?'ok':'bad');uHint.textContent=data?'✓ Διαθέσιμο':'Το όνομα χρησιμοποιείται ήδη';
+  },350);
+  $('editUser').addEventListener('input',e=>{
+    const clean=e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,'');
+    if(clean!==e.target.value)e.target.value=clean;
+    unameOk=false;uHint.className='hint';uHint.textContent='Έλεγχος…';checkU(clean);
+  });
+
   $('saveProfile').onclick=async()=>{
-    const v=$('dispName').value.trim()||me.username;
-    const {error}=await sb.from('profiles').update({display_name:v}).eq('id',me.id);
-    if(error)return toast('Δεν αποθηκεύτηκε');
-    state.me.display_name=v;renderMe();closeSheet();toast('Αποθηκεύτηκε');
+    const btn=$('saveProfile');
+    const newName=$('dispName').value.trim()||me.username;
+    const newUser=$('editUser').value.trim();
+    const newBio=bio.value.trim().slice(0,BIO_MAX);
+    if(newUser!==me.username&&!unameOk)return toast('Διάλεξε ένα διαθέσιμο όνομα χρήστη');
+    btn.disabled=true;btn.textContent='Αποθήκευση…';$('photoBox').classList.add('busy');
+    const fail=(t)=>{btn.disabled=false;btn.textContent='Αποθήκευση';$('photoBox')?.classList.remove('busy');toast(t);};
+    const changes={};
+
+    // 1. photo
+    let avatar_url=me.avatar_url;
+    if(pendingPhoto instanceof Blob){
+      const path=`${me.id}/${Date.now()}.jpg`;
+      const {error}=await sb.storage.from('avatars').upload(path,pendingPhoto,{contentType:'image/jpeg',cacheControl:'31536000',upsert:false});
+      if(error)return fail('Η φωτογραφία δεν ανέβηκε');
+      avatar_url=sb.storage.from('avatars').getPublicUrl(path).data.publicUrl;
+      clearOldAvatars(path);
+    }else if(pendingPhoto===null){
+      avatar_url=null;clearOldAvatars();
+    }
+
+    // 2. name, bio, photo url
+    const {error:upErr}=await sb.from('profiles').update({display_name:newName,bio:newBio,avatar_url}).eq('id',me.id);
+    if(upErr)return fail('Δεν αποθηκεύτηκε');
+    Object.assign(changes,{display_name:newName,bio:newBio,avatar_url});
+
+    // 3. username
+    if(newUser!==me.username){
+      const {data,error}=await sb.rpc('change_username',{new_username:newUser});
+      if(error){
+        patchMeEverywhere(changes);
+        return fail(/username_taken/.test(error.message)?'Το όνομα χρήστη πιάστηκε μόλις τώρα':'Το όνομα χρήστη δεν άλλαξε');
+      }
+      changes.username=data;
+    }
+
+    patchMeEverywhere(changes);
+    closeSheet();toast('Το προφίλ ενημερώθηκε');
   };
   $('logoutBtn').onclick=async()=>{closeSheet();await sb.auth.signOut();};
 }
@@ -877,11 +1024,13 @@ function renderMessages(scrollBottom){
   const c=activeConv();
   const members=new Map((c?.members||[]).map(m=>[m.id,m]));
   const box=$('messages');
+  const keep=box.scrollTop;
   let html=state.hasOlder?`<button class="btn-link older" id="olderBtn">Προηγούμενα μηνύματα</button>`:'';
   if(!state.hasOlder&&c){
     const o=others(c)[0];
-    html+=`<div class="chat-intro">${c.is_group?convAvatar(c).replace('class="stack"','class="stack" style="margin:0 auto"'):`<div style="display:flex;justify-content:center">${av(nameOf(o),o?.id||'x','xl')}</div>`}
-      <b>${esc(convTitle(c))}</b><span>${c.is_group?`${(c.members||[]).length} μέλη`:(o?'@'+esc(o.username):'')}</span></div>`;
+    html+=`<div class="chat-intro">${c.is_group?convAvatar(c).replace('class="stack"','class="stack" style="margin:0 auto"'):`<div style="display:flex;justify-content:center">${avP(o,'xl')}</div>`}
+      <b>${esc(convTitle(c))}</b><span>${c.is_group?`${(c.members||[]).length} μέλη`:(o?'@'+esc(o.username):'')}</span>
+      ${!c.is_group&&o?.bio?`<span class="bio">${linkify(o.bio)}</span>`:''}</div>`;
   }
   const gap=5*60e3;
   state.msgs.forEach((m,i)=>{
@@ -898,7 +1047,7 @@ function renderMessages(scrollBottom){
   });
   box.innerHTML=html;
   const ob=$('olderBtn');if(ob)ob.onclick=loadOlder;
-  if(scrollBottom)box.scrollTop=box.scrollHeight;
+  if(scrollBottom)box.scrollTop=box.scrollHeight;else box.scrollTop=keep;
 }
 function appendMessage(m){
   if(state.msgs.some(x=>x.id===m.id))return;
@@ -945,6 +1094,10 @@ function subscribe(){
     .on('postgres_changes',{event:'*',schema:'public',table:'conversation_members'},()=>reloadConvs())
     .on('postgres_changes',{event:'UPDATE',schema:'public',table:'conversations'},()=>reloadConvs())
     .on('postgres_changes',{event:'*',schema:'public',table:'friend_requests'},()=>reloadSocial())
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'profiles'},({new:p})=>{
+      if(p.id===state.me.id)return;
+      reloadSocial();reloadConvs();
+    })
     .subscribe();
 }
 document.addEventListener('visibilitychange',()=>{
