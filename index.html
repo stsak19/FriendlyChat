@@ -277,6 +277,14 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;backgrou
 .me-head b{flex:1;font-size:22px;font-weight:800;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .me-top{display:flex;align-items:center;gap:22px;padding:10px 16px 4px}
 .me-top .stats{display:flex;gap:26px}
+/* night mode: the app goes dark after sunset, whatever the phone's setting */
+html.night{
+  --bg:#000000; --panel:#000000; --field:#1f1f24; --line:#26262c; --hover:#121216;
+  --text:#f5f5f7; --muted:#9a9aa6; --accent:#6b78ff; --accent-soft:#1d2050;
+  --mine:#5563f7; --theirs:#232329; --danger:#ff6369; --nav:#131316; color-scheme:dark;
+}
+html.night .messages.has-bg .row.theirs .bubble{background:rgba(30,30,35,.86);color:#f5f5f7}
+html.night .messages.has-bg .reacts{background:#232329}
 .me-top .stat{text-align:center;padding:4px 8px;margin:-4px -8px;border-radius:12px}
 .me-top .stat:active{background:var(--hover)}
 .me-top .stat b{display:block;font-size:19px}
@@ -870,6 +878,7 @@ function renderProfile(){
   pane.scrollTop=keep;
   if(photo)$('myPic').onclick=()=>viewPhoto(photo);
   $('friendsStat').onclick=openFriends;
+  $('nightSwitch').onclick=()=>{lsSet('fc-night-off',nightEnabled()?'1':null);applyNight();renderProfile();};
   $('editProfileBtn').onclick=openMyProfile;
   $('pwBtn').onclick=openChangePassword;
   const pb=$('pushSwitch');if(pb)pb.onclick=async()=>{
@@ -1194,21 +1203,32 @@ async function bgUrl(path){
   if(error||!data)return null;
   bgCache.set(path,{url:data.signedUrl,exp:Date.now()+5*3600e3});return data.signedUrl;
 }
+const isNightNow=()=>document.documentElement.classList.contains('night');
+// a dark layer on top of a colour, gradient or photo
+const dim=(v,a)=>`linear-gradient(rgba(0,0,0,${a}),rgba(0,0,0,${a})),${v}`;
 function applyChatLook(c){
-  const chat=$('chat'),t=THEMES[c.theme]||THEMES.default;
-  if(t.mine)chat.style.setProperty('--mine',t.mine);else chat.style.removeProperty('--mine');
-  if(t.ink)chat.style.setProperty('--mine-ink',t.ink);else chat.style.removeProperty('--mine-ink');
+  const chat=$('chat'),t=THEMES[c.theme]||THEMES.default,night=isNightNow();
+  let mine=t.mine||null,ink=t.ink||null;
+  if(night&&mine){
+    if(c.theme==='mono'){mine='#2c2c31';ink='#f5f5f7';}
+    else mine=dim(mine,.35);
+  }
+  if(mine)chat.style.setProperty('--mine',mine);else chat.style.removeProperty('--mine');
+  if(ink)chat.style.setProperty('--mine-ink',ink);else chat.style.removeProperty('--mine-ink');
   if(t.accent)chat.style.setProperty('--chat-accent',t.accent);else chat.style.removeProperty('--chat-accent');
   const box=$('messages');
   if(!c.background_path&&BGS[c.background_color]){
-    box.dataset.bg='c:'+c.background_color;box.style.backgroundImage=BGS[c.background_color].bg;box.classList.add('has-bg');return;
+    const g=BGS[c.background_color].bg;
+    box.dataset.bg='c:'+c.background_color;box.style.backgroundImage=night?dim(g,.55):g;box.classList.add('has-bg');return;
   }
   if(!c.background_path){box.classList.remove('has-bg');box.style.backgroundImage='';box.dataset.bg='';return;}
-  if(box.dataset.bg===c.background_path&&box.classList.contains('has-bg'))return;
-  box.dataset.bg=c.background_path;
+  const key=c.background_path+(night?'#n':'');
+  if(box.dataset.bg===key&&box.classList.contains('has-bg'))return;
+  box.dataset.bg=key;
   bgUrl(c.background_path).then(url=>{
-    if(!url||state.activeId!==c.id||box.dataset.bg!==c.background_path)return;
-    box.style.backgroundImage=`url("${url}")`;box.classList.add('has-bg');
+    if(!url||state.activeId!==c.id||box.dataset.bg!==key)return;
+    const img=`url("${url}")`;
+    box.style.backgroundImage=night?dim(img,.55):img;box.classList.add('has-bg');
   });
 }
 // shrink a picked photo so it uploads fast (keeps its shape)
@@ -2002,6 +2022,62 @@ async function pushDisable(byUser=true){
   if(byUser){toast('Οι ειδοποιήσεις απενεργοποιήθηκαν');renderProfile();}
 }
 const ICON_LOGOUT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>';
+/* ================= NIGHT MODE (dark from sunset to sunrise) ================= */
+// sunrise / sunset for a date and place (same maths as the SunCalc library)
+function sunTimes(date,lat,lng){
+  const rad=Math.PI/180,dayMs=864e5,J1970=2440588,J2000=2451545,J0=0.0009,e=rad*23.4397;
+  const d=date/dayMs-0.5+J1970-J2000,lw=-lng*rad,phi=lat*rad;
+  const n=Math.round(d-J0-lw/(2*Math.PI));
+  const ds=J0+lw/(2*Math.PI)+n;
+  const M=rad*(357.5291+0.98560028*ds);
+  const L=M+rad*(1.9148*Math.sin(M)+0.02*Math.sin(2*M)+0.0003*Math.sin(3*M))+rad*102.9372+Math.PI;
+  const dec=Math.asin(Math.sin(e)*Math.sin(L));
+  const Jnoon=J2000+ds+0.0053*Math.sin(M)-0.0069*Math.sin(2*L);
+  const w=Math.acos((Math.sin(-0.833*rad)-Math.sin(phi)*Math.sin(dec))/(Math.cos(phi)*Math.cos(dec)));
+  if(isNaN(w))return null; // polar day / night
+  const Jset=J2000+(J0+(w+lw)/(2*Math.PI)+n)+0.0053*Math.sin(M)-0.0069*Math.sin(2*L);
+  const fromJ=j=>new Date((j+0.5-J1970)*dayMs);
+  return {rise:fromJ(Jnoon-(Jset-Jnoon)),set:fromJ(Jset)};
+}
+// rough location from the phone's time zone (no location permission needed)
+function approxPlace(){
+  let tz='';try{tz=Intl.DateTimeFormat().resolvedOptions().timeZone||'';}catch{}
+  const known={'Europe/Athens':[37.98,23.73],'Asia/Nicosia':[35.17,33.36],'Europe/London':[51.5,-0.12],'Europe/Berlin':[52.52,13.4],'Europe/Paris':[48.86,2.35],'Europe/Amsterdam':[52.37,4.9],'Europe/Brussels':[50.85,4.35],'Europe/Rome':[41.9,12.5],'Europe/Madrid':[40.42,-3.7],'America/New_York':[40.71,-74],'America/Los_Angeles':[34.05,-118.24]};
+  if(known[tz])return known[tz];
+  // standard (non-summer) offset from UTC gives a rough longitude
+  const y=new Date().getFullYear();
+  const std=Math.min(-new Date(y,0,1).getTimezoneOffset(),-new Date(y,6,1).getTimezoneOffset());
+  return [40,std/60*15];
+}
+function todaySun(){
+  const noon=new Date();noon.setHours(12,0,0,0);
+  const [lat,lng]=approxPlace();
+  const t=sunTimes(noon,lat,lng);
+  if(t)return t;
+  const r=new Date(noon),st=new Date(noon);r.setHours(7,0,0,0);st.setHours(20,0,0,0);return {rise:r,set:st};
+}
+const nightEnabled=()=>lsGet('fc-night-off')!=='1';
+function applyNight(){
+  const {rise,set}=todaySun(),now=new Date();
+  const on=nightEnabled()&&(now>=set||now<rise);
+  const root=document.documentElement;
+  if(root.classList.contains('night')===on)return;
+  root.classList.toggle('night',on);
+  document.querySelectorAll('meta[name=theme-color]').forEach(m=>{if(!m.dataset.day)m.dataset.day=m.content;m.content=on?'#000000':m.dataset.day;});
+  const c=state.me&&activeConv();if(c)applyChatLook(c);
+  renderProfile();
+}
+applyNight();
+setInterval(applyNight,60000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')applyNight();});
+const ICON_MOON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11Z"/></svg>';
+const hhmm=d=>d.toLocaleTimeString('el-GR',{hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
+function nightRowHTML(){
+  const on=nightEnabled(),{rise,set}=todaySun();
+  const sub=on?`Σκοτεινό θέμα από ${hhmm(set)} έως ${hhmm(rise)}`:'Κλειστή';
+  return `<div class="set-item">${ICON_MOON}<div class="tx"><b>Νυχτερινή λειτουργία</b><span>${sub}</span></div>
+    <button class="switch${on?' on':''}" id="nightSwitch" role="switch" aria-checked="${on}" aria-label="Νυχτερινή λειτουργία"></button></div>`;
+}
 function settingsHTML(){
   let sub,canToggle=true;
   if(!pushSupported){
@@ -2017,6 +2093,7 @@ function settingsHTML(){
     <div class="set-group">
       <div class="set-item">${ICON_BELL}<div class="tx"><b>Ειδοποιήσεις</b><span>${sub}</span></div>
         <button class="switch${on?' on':''}" id="pushSwitch" role="switch" aria-checked="${on}" aria-label="Ειδοποιήσεις" ${canToggle?'':'disabled'}></button></div>
+      ${nightRowHTML()}
       <button class="set-item" id="pwBtn">${ICON_LOCK}<div class="tx"><b>Αλλαγή κωδικού</b></div></button>
       <button class="set-item danger" id="logoutBtn">${ICON_LOGOUT}<div class="tx"><b>Αποσύνδεση</b></div></button>
     </div>`;
