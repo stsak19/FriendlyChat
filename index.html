@@ -579,7 +579,7 @@ button.set-item:active{background:var(--hover)}
 <!-- ============ APP ============ -->
 <section id="app" class="hidden">
   <aside>
-   <div class="pane" id="msgPane">
+   <div class="pane" id="msgPane" hidden>
     <div class="top">
       <span style="width:40px;flex-shrink:0"></span>
       <div class="uname" id="meName"></div>
@@ -607,7 +607,7 @@ button.set-item:active{background:var(--hover)}
     </div>
    </div>
 
-   <div class="pane" id="feedPane" hidden>
+   <div class="pane" id="feedPane">
     <div class="top">
       <div class="uname left">Ροή</div>
       <button class="icon-btn" id="newPostBtn" aria-label="Νέα δημοσίευση">
@@ -624,11 +624,11 @@ button.set-item:active{background:var(--hover)}
    <div class="pane scroll" id="profilePane" hidden></div>
 
    <nav class="navbar" aria-label="Πλοήγηση">
-     <button class="nav-btn" data-view="feed" id="navFeed" aria-label="Ροή">
+     <button class="nav-btn on" data-view="feed" id="navFeed" aria-label="Ροή">
        <span class="nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1Z"/></svg><span class="ndot hidden" id="feedDot"></span></span>
        <span>Ροή</span>
      </button>
-     <button class="nav-btn on" data-view="messages" id="navMsgs" aria-label="Μηνύματα">
+     <button class="nav-btn" data-view="messages" id="navMsgs" aria-label="Μηνύματα">
        <span class="nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.3 7.5L3 21l2-5.3A8.4 8.4 0 1 1 21 11.5Z"/></svg><span class="badge hidden" id="navBadge"></span></span>
        <span>Μηνύματα</span>
      </button>
@@ -950,12 +950,13 @@ async function enterApp(){
   await Promise.all([loadConvs(),loadSocial()]);
   subscribe();
   entering=false;
+  setView('feed'); // start on the feed (a notification link below can switch to a chat)
   pushSync();
   checkFeedDot();
   if(location.search)openDeepLink(location.search);
 }
 function showAuth(){
-  setView('messages');
+  setView('feed');
   Object.assign(state,{me:null,convs:[],friends:[],incoming:[],outgoing:[],activeId:null,replyTo:null,editing:null,myPosts:null});
   resetFeed();$('feedDot').classList.add('hidden');
   if(state.channel){sb.removeChannel(state.channel);state.channel=null;}
@@ -1013,7 +1014,7 @@ function renderHome(){
 }
 
 /* ================= NAVBAR + MY PROFILE PAGE ================= */
-state.view='messages';
+state.view='feed'; // the app opens on the feed
 function setView(v){
   state.view=v;
   $('msgPane').hidden=v!=='messages';$('profilePane').hidden=v!=='profile';$('feedPane').hidden=v!=='feed';
@@ -2761,6 +2762,7 @@ async function postUrls(paths){
 
 /* ---- the feed list ---- */
 function showFeed(){
+  if(!state.me)return;
   markFeedSeen();syncFeedTabs();
   const L=feedList();
   if(!L.loaded||L.fresh||Date.now()-L.at>60e3)loadFeed(true);
