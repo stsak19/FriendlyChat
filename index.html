@@ -136,6 +136,16 @@ aside{width:400px;flex-shrink:0;border-right:1px solid var(--line);display:flex;
 .conv.unread .conv-name{font-weight:700}
 .conv.unread .conv-sub{color:var(--text);font-weight:600}
 .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);flex-shrink:0}
+/* swipe a chat to the left: mute / delete (like Instagram) */
+.cv-wrap{position:relative;overflow:hidden}
+.cv-wrap .conv{position:relative;z-index:1;background:var(--panel);touch-action:pan-y;transition:transform .22s ease-out}
+.cv-wrap .conv:hover,.cv-wrap .conv.on{background:var(--hover)}
+.cv-wrap .conv.dragging{transition:none}
+.cv-acts{position:absolute;top:0;right:0;bottom:0;display:flex}
+.cv-acts button{width:80px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#fff;font-size:12.5px;font-weight:600;text-align:center;line-height:1.15;padding:0 4px}
+.cv-acts svg{width:22px;height:22px}
+.cv-acts .mu{background:#7d7d88}
+.cv-acts .del{background:var(--danger)}
 .empty{padding:34px 24px;text-align:center;color:var(--muted);font-size:14px}
 .empty b{display:block;color:var(--text);font-size:16px;margin-bottom:6px}
 .sect{font-weight:700;font-size:15px;padding:14px 16px 6px}
@@ -291,6 +301,9 @@ html.night{
 html.night .messages.has-bg .row.theirs .bubble{background:rgba(30,30,35,.86);color:#f5f5f7}
 html.night .messages.has-bg .reacts{background:#232329}
 html.night .messages.has-bg .rq{background:rgba(30,30,35,.7);color:#c9c9d1}
+/* black bubble on a black screen: a thin outline keeps it visible */
+html.night .row.mine .bubble,html.night .row.theirs .bubble.photo.fresh{box-shadow:inset 0 0 0 1px #3a3a42}
+html.night .rec .rsend{color:#000}
 .me-top .stat{text-align:center;padding:4px 8px;margin:-4px -8px;border-radius:12px}
 .me-top .stat:active{background:var(--hover)}
 .me-top .stat b{display:block;font-size:19px}
@@ -1128,7 +1141,7 @@ function convRowHTML(c){
   const muted=isMuted(c);
   let text;
   if(unread)text=unread===1?'1 νέο μήνυμα':(unread>9?'9+':unread)+' νέα μηνύματα';
-  else if(c.last_message!=null){
+  else if(c.last_message!=null&&!clearedAll(c)){
     const lm=c.last_kind==='photo'||c.last_kind==='voice'?previewOf({kind:c.last_kind}):c.last_message;
     if(c.last_kind==='system')text=sysText(c,{sender_id:c.last_sender,content:c.last_message});
     else if(c.last_sender===state.me.id)text='Εσύ: '+lm;
@@ -1153,12 +1166,113 @@ function renderConvs(){
       :(state.friends.length
         ?`<div class="empty"><b>Καμία συνομιλία ακόμα</b>Πάτα έναν φίλο από πάνω για να του στείλεις μήνυμα.</div>`
         :`<div class="empty"><b>Ξεκίνα προσθέτοντας φίλους</b>Ψάξε κάποιον με το όνομα χρήστη του και στείλε αίτημα. Μόλις το δεχτεί, θα εμφανιστεί εδώ πάνω.</div>`);
-  }else html+=items.map(convRowHTML).join('');
+  }else html+=items.map(c=>`<div class="cv-wrap" data-cid="${c.id}">${convRowHTML(c)}<div class="cv-acts">
+      <button class="mu" data-a="mute">${isMuted(c)?ICON_BELL:ICON_BELL_OFF}<span>${isMuted(c)?'Άρση σίγασης':'Σίγαση'}</span></button>
+      <button class="del" data-a="del">${ICON_TRASH}<span>Διαγραφή</span></button></div></div>`).join('');
+  if(swipe.drag){swipe.pending=true;return;} // don't pull the row out from under a finger
   list.innerHTML=html;
   list.querySelectorAll('.conv[data-id]').forEach(b=>b.onclick=()=>openConv(b.dataset.id));
+  // keep an opened row open after a refresh
+  const ow=swipe.openId&&list.querySelector(`.cv-wrap[data-cid="${swipe.openId}"] .conv`);
+  if(ow){ow.classList.add('dragging');ow.style.transform=`translateX(${-SW_W}px)`;ow.offsetWidth;ow.classList.remove('dragging');}
+  else swipe.openId=null;
   const ng=$('newGroupRow');if(ng)ng.onclick=()=>openCompose(true);
 }
 setInterval(()=>{if(state.me&&!$('homeView').hidden)renderConvs();},60000);
+const ICON_TRASH='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>';
+const SW_W=160; // width of the two buttons
+const swipe={drag:null,openId:null,pending:false,eat:false};
+function closeSwipe(){
+  const id=swipe.openId;swipe.openId=null;
+  const r=id&&document.querySelector(`#convList .cv-wrap[data-cid="${id}"] .conv`);
+  if(r)r.style.transform='';
+}
+(()=>{
+  const list=$('convList');
+  list.addEventListener('pointerdown',e=>{
+    const row=e.target.closest('.cv-wrap .conv');if(!row)return;
+    const id=row.parentElement.dataset.cid;
+    if(swipe.openId&&swipe.openId!==id){closeSwipe();swipe.eat=true;return;}
+    if(e.pointerType==='mouse')return; // mouse: right click instead
+    swipe.drag={row,id,pid:e.pointerId,x0:e.clientX,y0:e.clientY,base:swipe.openId===id?-SW_W:0,x:0,on:false};
+  });
+  list.addEventListener('pointermove',e=>{
+    const d=swipe.drag;if(!d||e.pointerId!==d.pid)return;
+    const dx=e.clientX-d.x0,dy=e.clientY-d.y0;
+    if(!d.on){
+      if(Math.abs(dy)>10&&Math.abs(dy)>Math.abs(dx)){swipe.drag=null;return;}
+      if(Math.abs(dx)<10||Math.abs(dx)<Math.abs(dy)*1.3)return;
+      d.on=true;d.row.classList.add('dragging');try{d.row.setPointerCapture(d.pid);}catch{}
+    }
+    let x=d.base+dx;
+    if(x>0)x=0;
+    if(x<-SW_W)x=-SW_W-(-SW_W-x)*.3; // a little give past the buttons
+    d.x=x;d.row.style.transform=`translateX(${x}px)`;
+  });
+  const end=e=>{
+    const d=swipe.drag;if(!d||e.pointerId!==d.pid)return;
+    swipe.drag=null;
+    if(d.on){
+      swipe.eat=true;setTimeout(()=>{swipe.eat=false;},350);
+      d.row.classList.remove('dragging');
+      const open=d.x<-SW_W/2;
+      d.row.style.transform=open?`translateX(${-SW_W}px)`:'';
+      swipe.openId=open?d.id:null;
+      if(open)navigator.vibrate?.(8);
+    }
+    if(swipe.pending){swipe.pending=false;renderConvs();}
+  };
+  list.addEventListener('pointerup',end);list.addEventListener('pointercancel',end);
+  // right click on a computer opens the same buttons
+  list.addEventListener('contextmenu',e=>{
+    const row=e.target.closest('.cv-wrap .conv');if(!row)return;
+    e.preventDefault();const id=row.parentElement.dataset.cid;
+    if(swipe.openId===id)return closeSwipe();
+    closeSwipe();swipe.openId=id;row.style.transform=`translateX(${-SW_W}px)`;
+  });
+  // taps: swallow the tap that ends a swipe; tapping an open row closes it
+  list.addEventListener('click',e=>{
+    const a=e.target.closest('.cv-acts [data-a]');
+    if(a){
+      e.stopPropagation();
+      const c=state.convs.find(x=>x.id===a.closest('.cv-wrap').dataset.cid);
+      closeSwipe();if(!c)return;
+      return a.dataset.a==='mute'?swipeMute(c):deleteChat(c);
+    }
+    if(swipe.eat){swipe.eat=false;e.stopPropagation();e.preventDefault();return;}
+    if(swipe.openId&&e.target.closest('.cv-wrap .conv')){e.stopPropagation();closeSwipe();}
+  },true);
+  // leaving the list closes any open row
+  document.addEventListener('pointerdown',e=>{if(swipe.openId&&!e.target.closest('#convList'))closeSwipe();});
+})();
+async function swipeMute(c){
+  if(isMuted(c)){
+    const prev=c.muted_until;c.muted_until=null;afterMute();
+    const {error}=await sb.rpc('set_mute',{conv:c.id,minutes:null});
+    if(error){c.muted_until=prev;afterMute();return toast('Δεν άλλαξε η σίγαση');}
+    return toast('Η σίγαση καταργήθηκε');
+  }
+  openSheet(`Σίγαση: ${convTitle(c)}`,`<div class="set-group" style="margin-top:4px">`+
+    MUTE_OPTS.map(([v,t])=>`<button class="set-item" data-min="${v}"><div class="tx"><b>${t}</b></div></button>`).join('')+
+    `</div><p class="hint" style="margin:6px 16px 0">Δεν θα λαμβάνεις ειδοποιήσεις από αυτή τη συνομιλία.</p>`);
+  $('sheetBody').querySelectorAll('[data-min]').forEach(b=>b.onclick=async()=>{
+    closeSheet();
+    const {data,error}=await sb.rpc('set_mute',{conv:c.id,minutes:+b.dataset.min});
+    if(error)return toast('Δεν άλλαξε η σίγαση');
+    c.muted_until=data;afterMute();toast('Η συνομιλία είναι σε σίγαση');
+  });
+}
+// delete = only from my list (like Instagram). It comes back if a new message arrives.
+async function deleteChat(c){
+  const who=c.is_group?'Τα μέλη της ομάδας':`${memberFirst(others(c)[0])}`;
+  if(!confirm(`Διαγραφή συνομιλίας;\nΘα σβηστεί μόνο για σένα. ${who} θα ${c.is_group?'τη βλέπουν':'τη βλέπει'} κανονικά.`))return;
+  const i=state.convs.indexOf(c);
+  state.convs=state.convs.filter(x=>x!==c);
+  if(state.activeId===c.id)closeChat();else renderHome();
+  const {error}=await sb.rpc('delete_conversation_for_me',{conv:c.id});
+  if(error){state.convs.splice(Math.max(0,i),0,c);renderHome();return toast('Δεν διαγράφηκε η συνομιλία');}
+  toast('Η συνομιλία διαγράφηκε');
+}
 // drop messages that passed 24h while the chat is open
 setInterval(()=>{
   if(!state.activeId||!state.msgs.length)return;
@@ -1443,27 +1557,25 @@ const isNightNow=()=>document.documentElement.classList.contains('night');
 const dim=(v,a)=>`linear-gradient(rgba(0,0,0,${a}),rgba(0,0,0,${a})),${v}`;
 function applyChatLook(c){
   const chat=$('chat'),t=THEMES[c.theme]||THEMES.default,night=isNightNow();
-  let mine=t.mine||null,ink=t.ink||null;
-  if(night&&mine){
-    if(c.theme==='mono'){mine='#2c2c31';ink='#f5f5f7';}
-    else mine=dim(mine,.35);
-  }
+  let mine=t.mine||null,ink=t.ink||null,accent=t.accent||null;
+  // night mode: every chat goes black & white (black bubble), whatever its theme
+  if(night){mine='#000000';ink='#f5f5f7';accent='#f5f5f7';}
   if(mine)chat.style.setProperty('--mine',mine);else chat.style.removeProperty('--mine');
   if(ink)chat.style.setProperty('--mine-ink',ink);else chat.style.removeProperty('--mine-ink');
-  if(t.accent)chat.style.setProperty('--chat-accent',t.accent);else chat.style.removeProperty('--chat-accent');
+  if(accent)chat.style.setProperty('--chat-accent',accent);else chat.style.removeProperty('--chat-accent');
   const box=$('messages');
   if(!c.background_path&&BGS[c.background_color]){
     const g=BGS[c.background_color].bg;
-    box.dataset.bg='c:'+c.background_color;box.style.backgroundImage=night?dim(g,.55):g;box.classList.add('has-bg');return;
+    box.dataset.bg='c:'+c.background_color;box.style.backgroundImage=g;box.classList.add('has-bg');return;
   }
   if(!c.background_path){box.classList.remove('has-bg');box.style.backgroundImage='';box.dataset.bg='';return;}
-  const key=c.background_path+(night?'#n':'');
+  const key=c.background_path;
   if(box.dataset.bg===key&&box.classList.contains('has-bg'))return;
   box.dataset.bg=key;
   bgUrl(c.background_path).then(url=>{
     if(!url||state.activeId!==c.id||box.dataset.bg!==key)return;
     const img=`url("${url}")`;
-    box.style.backgroundImage=night?dim(img,.55):img;box.classList.add('has-bg');
+    box.style.backgroundImage=img;box.classList.add('has-bg');
   });
 }
 // shrink a picked photo so it uploads fast (keeps its shape)
@@ -1803,6 +1915,9 @@ function openMyProfile(){
 
 /* ================= CHAT ================= */
 function activeConv(){return state.convs.find(c=>c.id===state.activeId);}
+// after I delete a chat, I only see what comes after that
+const afterCleared=(q,c)=>c?.cleared_at?q.gt('created_at',c.cleared_at):q;
+const clearedAll=c=>!!c.cleared_at&&(!c.last_message_at||c.last_message_at<=c.cleared_at);
 // tell the server I've read this chat. Note: supabase calls only run once
 // something waits for them (.then), so a bare sb.rpc(...) would never be sent.
 const markRead=conv=>{if(conv)sb.rpc('mark_read',{conv}).then(({error})=>{if(error)console.warn('mark_read',error);});};
@@ -1811,6 +1926,7 @@ async function startDirect(uid){
   if(existing){setSearching(false);searchInp.value='';return openConv(existing.id);}
   const {data:convId,error}=await sb.rpc('get_or_create_direct',{other_user:uid});
   if(error){toast(/not_friends/.test(error.message)?'Πρέπει πρώτα να γίνετε φίλοι':'Δεν ξεκίνησε η συνομιλία');return;}
+  await sb.rpc('restore_conversation',{conv:convId});
   setSearching(false);searchInp.value='';
   state.tab='chats';await loadConvs();openConv(convId);
 }
@@ -1838,7 +1954,7 @@ async function openConv(id){
   renderHome();renderChatHead();$('messages').innerHTML='';
   state.views=new Map();
   const [{data,error},{data:views}]=await Promise.all([
-    sb.from('messages').select(MSG_COLS).eq('conversation_id',id).order('created_at',{ascending:false}).limit(PAGE),
+    afterCleared(sb.from('messages').select(MSG_COLS).eq('conversation_id',id),c).order('created_at',{ascending:false}).limit(PAGE),
     sb.from('photo_views').select('message_id,user_id').eq('conversation_id',id)
   ]);
   if(state.activeId!==id)return;
@@ -1862,8 +1978,8 @@ $('chatTitleBtn').onclick=$('chatInfoBtn').onclick=()=>{const c=activeConv();if(
 async function loadOlder(){
   if(!state.msgs.length)return;
   const box=$('messages');const prevH=box.scrollHeight;
-  const {data}=await sb.from('messages').select(MSG_COLS)
-    .eq('conversation_id',state.activeId).lt('created_at',state.msgs[0].created_at).order('created_at',{ascending:false}).limit(PAGE);
+  const {data}=await afterCleared(sb.from('messages').select(MSG_COLS)
+    .eq('conversation_id',state.activeId),activeConv()).lt('created_at',state.msgs[0].created_at).order('created_at',{ascending:false}).limit(PAGE);
   state.hasOlder=(data||[]).length===PAGE;
   state.msgs=(data||[]).reverse().concat(state.msgs);
   renderMessages(false);box.scrollTop=box.scrollHeight-prevH;
@@ -2716,7 +2832,7 @@ const ICON_MOON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
 const hhmm=d=>d.toLocaleTimeString('el-GR',{hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
 function nightRowHTML(){
   const on=nightEnabled(),{rise,set}=todaySun();
-  const sub=on?`Σκοτεινό θέμα από ${hhmm(set)} έως ${hhmm(rise)}`:'Κλειστή';
+  const sub=on?`Μαύρο θέμα και μαύρη φούσκα από ${hhmm(set)} έως ${hhmm(rise)}`:'Κλειστή';
   return `<div class="set-item">${ICON_MOON}<div class="tx"><b>Νυχτερινή λειτουργία</b><span>${sub}</span></div>
     <button class="switch${on?' on':''}" id="nightSwitch" role="switch" aria-checked="${on}" aria-label="Νυχτερινή λειτουργία"></button></div>`;
 }
