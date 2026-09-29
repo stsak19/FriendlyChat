@@ -489,6 +489,10 @@ button.set-item:active{background:var(--hover)}
 .ptabs button i{font-style:normal;font-weight:500;font-size:12.5px;opacity:.8}
 .ptabs button.on{color:var(--text);border-top-color:var(--text)}
 .ptabs+.grid{margin-top:0}
+.feed-tabs{margin-top:4px;border-top:0;border-bottom:1px solid var(--line);flex-shrink:0}
+.feed-tabs button{border-top:0;border-bottom:1.5px solid transparent;margin:0 0 -1px;position:relative}
+.feed-tabs button.on{border-bottom-color:var(--text)}
+.feed-tabs button.has-new::after{content:"";width:7px;height:7px;border-radius:50%;background:var(--danger);margin-left:-2px}
 .tlist{display:flex;flex-direction:column}
 .tcard{display:block;width:100%;text-align:left;padding:14px 16px;border-bottom:1px solid var(--line)}
 .tcard:active{background:var(--hover)}
@@ -609,6 +613,10 @@ button.set-item:active{background:var(--hover)}
       <button class="icon-btn" id="newPostBtn" aria-label="Νέα δημοσίευση">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="M12 8v8M8 12h8"/></svg>
       </button>
+    </div>
+    <div class="ptabs feed-tabs" id="feedTabs" role="tablist">
+      <button role="tab" data-ftab="photos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg><span>Φωτογραφίες</span></button>
+      <button role="tab" data-ftab="texts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 11h16M4 16h10"/></svg><span>Κείμενα</span></button>
     </div>
     <div class="scroll" id="feedList"></div>
    </div>
@@ -949,7 +957,7 @@ async function enterApp(){
 function showAuth(){
   setView('messages');
   Object.assign(state,{me:null,convs:[],friends:[],incoming:[],outgoing:[],activeId:null,replyTo:null,editing:null,myPosts:null});
-  Object.assign(feed,{posts:[],loaded:false,more:true,fresh:0,newest:null});$('feedDot').classList.add('hidden');
+  resetFeed();$('feedDot').classList.add('hidden');
   if(state.channel){sb.removeChannel(state.channel);state.channel=null;}
   $('app').classList.add('hidden');$('auth').classList.remove('hidden');document.title='FriendlyChat';
 }
@@ -1019,7 +1027,7 @@ document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>{
 });
 function v0(b){ // tapping the current tab again scrolls to top
   if(b.dataset.view==='messages'){$('homeView').scrollTop=0;return true;}
-  if(b.dataset.view==='feed'){const l=$('feedList');if(l.scrollTop<10&&feed.fresh)loadFeed(true);l.scrollTo({top:0,behavior:'smooth'});return true;}
+  if(b.dataset.view==='feed'){const l=$('feedList');if(l.scrollTop<10&&feedList().fresh)loadFeed(true);l.scrollTo({top:0,behavior:'smooth'});return true;}
   $('profilePane').scrollTop=0;return true;
 }
 const ICON_LOCK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
@@ -2723,7 +2731,11 @@ function settingsHTML(){
 /* ================= FEED (friends only, no likes) ================= */
 const POST_COLS='id,author_id,caption,photo_path,photo_w,photo_h,created_at,author:profiles!posts_author_id_fkey(id,username,display_name,avatar_url,bio)';
 const FEED_PAGE=15,CAPTION_MAX=2200;
-const feed={posts:[],loaded:false,loading:false,more:true,fresh:0,newest:null,at:0};
+// the feed has two sections: photos and texts, each loaded on its own
+const newList=()=>({posts:[],loaded:false,loading:false,more:true,fresh:0,at:0,top:0});
+const feed={tab:lsGet('fc-feed-tab')==='texts'?'texts':'photos',L:{photos:newList(),texts:newList()},newest:null};
+const feedList=(t=feed.tab)=>feed.L[t];
+function resetFeed(){feed.L={photos:newList(),texts:newList()};feed.newest=null;}
 const ICON_SEND_DM='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4Z"/></svg>';
 const ICON_DOTS='<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>';
 
@@ -2749,27 +2761,49 @@ async function postUrls(paths){
 
 /* ---- the feed list ---- */
 function showFeed(){
-  markFeedSeen();
-  if(!feed.loaded||feed.fresh||Date.now()-feed.at>60e3)loadFeed(true);
+  markFeedSeen();syncFeedTabs();
+  const L=feedList();
+  if(!L.loaded||L.fresh||Date.now()-L.at>60e3)loadFeed(true);
   else renderFeed();
 }
-async function loadFeed(reset=false){
-  if(feed.loading||!state.me)return;
-  if(!reset&&!feed.more)return;
-  feed.loading=true;
-  let q=sb.from('posts').select(POST_COLS).order('created_at',{ascending:false}).limit(FEED_PAGE);
-  if(!reset&&feed.posts.length)q=q.lt('created_at',feed.posts[feed.posts.length-1].created_at);
+async function loadFeed(reset=false,t=feed.tab){
+  const L=feed.L[t];
+  if(L.loading||!state.me)return;
+  if(!reset&&!L.more)return;
+  L.loading=true;
+  let q=sb.from('posts').select(POST_COLS);
+  q=t==='photos'?q.not('photo_path','is',null):q.is('photo_path',null);
+  q=q.order('created_at',{ascending:false}).limit(FEED_PAGE);
+  if(!reset&&L.posts.length)q=q.lt('created_at',L.posts[L.posts.length-1].created_at);
   const {data,error}=await q;
-  if(error){feed.loading=false;if(!feed.loaded){feed.loaded=true;renderFeed();}return toast('Δεν φόρτωσε η ροή');}
+  if(error){L.loading=false;if(!L.loaded){L.loaded=true;renderFeed();}return toast('Δεν φόρτωσε η ροή');}
   const rows=data||[];
   await postUrls(rows.map(p=>p.photo_path));
-  feed.loading=false;
-  feed.posts=reset?rows:feed.posts.concat(rows.filter(r=>!feed.posts.some(x=>x.id===r.id)));
-  feed.more=rows.length===FEED_PAGE;feed.loaded=true;feed.at=Date.now();
-  if(reset){feed.fresh=0;const f=rows.find(p=>p.author_id!==state.me.id);if(f&&(!feed.newest||f.created_at>feed.newest))feed.newest=f.created_at;}
+  if(feed.L[t]!==L)return; // logged out meanwhile
+  L.loading=false;
+  L.posts=reset?rows:L.posts.concat(rows.filter(r=>!L.posts.some(x=>x.id===r.id)));
+  L.more=rows.length===FEED_PAGE;L.loaded=true;L.at=Date.now();
+  if(reset){L.fresh=0;const f=rows.find(p=>p.author_id!==state.me.id);if(f&&(!feed.newest||f.created_at>feed.newest))feed.newest=f.created_at;}
   if(state.view==='feed')markFeedSeen();
-  renderFeed();
+  if(t===feed.tab)renderFeed();else syncFeedTabs();
 }
+// tabs under the "Ροή" title
+function syncFeedTabs(){
+  document.querySelectorAll('#feedTabs [data-ftab]').forEach(b=>{
+    const t=b.dataset.ftab,on=t===feed.tab;
+    b.classList.toggle('on',on);b.setAttribute('aria-selected',on);
+    b.classList.toggle('has-new',!on&&feed.L[t].fresh>0);
+  });
+}
+document.querySelectorAll('#feedTabs [data-ftab]').forEach(b=>b.onclick=()=>{
+  const t=b.dataset.ftab,list=$('feedList');
+  if(t===feed.tab){list.scrollTo({top:0,behavior:'smooth'});return;}
+  feedList().top=list.scrollTop;
+  feed.tab=t;lsSet('fc-feed-tab',t);syncFeedTabs();
+  const L=feedList();
+  if(!L.loaded||L.fresh||Date.now()-L.at>60e3){L.top=0;renderFeed();loadFeed(true);}
+  else{renderFeed();list.scrollTop=L.top;}
+});
 function postHTML(p){
   const mine=p.author_id===state.me.id,a=mine?state.me:p.author;
   const cap=p.caption||'';
@@ -2788,26 +2822,27 @@ function postHTML(p){
     ${body}${long?`<button class="more-btn" data-expand>περισσότερα</button>`:''}</article>`;
 }
 function renderFeed(){
-  const list=$('feedList');
+  const list=$('feedList'),L=feedList(),photos=feed.tab==='photos';
   if(!state.me)return;
-  if(!feed.loaded){list.innerHTML='<div class="empty">Φόρτωση…</div>';return;}
-  let h=feed.fresh?`<button class="new-pill" id="freshBtn">↑ Νέες δημοσιεύσεις</button>`:'';
-  if(!feed.posts.length){
-    h+=`<div class="empty"><b>Η ροή σου είναι άδεια</b>${state.friends.length?'Εδώ θα βλέπεις ό,τι ανεβάζουν οι φίλοι σου.':'Πρόσθεσε φίλους για να βλέπεις τι ανεβάζουν.'}
-      <br><button class="btn btn-primary btn-sm" id="firstPost" style="margin-top:14px">Ανέβασε κάτι</button></div>`;
+  syncFeedTabs();
+  if(!L.loaded){list.innerHTML='<div class="empty">Φόρτωση…</div>';list.scrollTop=0;return;}
+  let h=L.fresh?`<button class="new-pill" id="freshBtn">↑ Νέες δημοσιεύσεις</button>`:'';
+  if(!L.posts.length){
+    h+=`<div class="empty"><b>${photos?'Καμία φωτογραφία ακόμα':'Κανένα κείμενο ακόμα'}</b>${state.friends.length?(photos?'Εδώ θα βλέπεις τις φωτογραφίες που ανεβάζουν οι φίλοι σου.':'Εδώ θα βλέπεις ό,τι γράφουν οι φίλοι σου.'):'Πρόσθεσε φίλους για να βλέπεις τι ανεβάζουν.'}
+      <br><button class="btn btn-primary btn-sm" id="firstPost" style="margin-top:14px">${photos?'Ανέβασε φωτογραφία':'Γράψε κάτι'}</button></div>`;
   }else{
-    h+=feed.posts.map(postHTML).join('');
-    h+=feed.more?`<div class="empty" style="padding:18px">Φόρτωση…</div>`:`<div class="empty" style="padding:22px 24px 30px">Αυτά για τώρα ✨</div>`;
+    h+=L.posts.map(postHTML).join('');
+    h+=L.more?`<div class="empty" style="padding:18px">Φόρτωση…</div>`:`<div class="empty" style="padding:22px 24px 30px">Αυτά για τώρα ✨</div>`;
   }
   const keep=list.scrollTop;list.innerHTML=h;list.scrollTop=keep;
   const fb=$('freshBtn');if(fb)fb.onclick=()=>{list.scrollTo({top:0});loadFeed(true);};
-  const fp=$('firstPost');if(fp)fp.onclick=openNewPost;
+  const fp=$('firstPost');if(fp)fp.onclick=()=>openNewPost(photos);
 }
 $('feedList').addEventListener('scroll',e=>{
-  const l=e.target;
-  if(feed.more&&!feed.loading&&l.scrollHeight-l.scrollTop-l.clientHeight<600)loadFeed(false);
+  const l=e.target,L=feedList();
+  if(L.more&&!L.loading&&l.scrollHeight-l.scrollTop-l.clientHeight<600)loadFeed(false);
 },{passive:true});
-$('newPostBtn').onclick=()=>openNewPost();
+$('newPostBtn').onclick=()=>openNewPost(feed.tab==='photos');
 
 // taps inside a post (feed, or a post opened from a profile grid)
 function onPostClick(e){
@@ -2826,7 +2861,7 @@ function onPostClick(e){
   if(del)return deletePost(+del.dataset.del);
 }
 $('feedList').addEventListener('click',onPostClick);
-function findPost(id){return feed.posts.find(p=>p.id===id)||(state.myPosts||[]).find(p=>p.id===id)||openPostCache.get(id);}
+function findPost(id){return feed.L.photos.posts.find(p=>p.id===id)||feed.L.texts.posts.find(p=>p.id===id)||(state.myPosts||[]).find(p=>p.id===id)||openPostCache.get(id);}
 
 async function deletePost(id){
   const p=findPost(id);if(!p)return;
@@ -2837,10 +2872,10 @@ async function deletePost(id){
   closeSheet();dropPost(id);toast('Η δημοσίευση διαγράφηκε');
 }
 function dropPost(id){
-  const a=feed.posts.length,b=(state.myPosts||[]).length;
-  feed.posts=feed.posts.filter(p=>p.id!==id);
+  const b=(state.myPosts||[]).length;let hit=false;
+  for(const L of Object.values(feed.L)){const n=L.posts.length;L.posts=L.posts.filter(p=>p.id!==id);if(L.posts.length!==n)hit=true;}
   if(state.myPosts)state.myPosts=state.myPosts.filter(p=>p.id!==id);
-  if(feed.posts.length!==a)renderFeed();
+  if(hit)renderFeed();
   if((state.myPosts||[]).length!==b)renderProfile();
 }
 
@@ -2858,10 +2893,12 @@ async function checkFeedDot(){
 }
 function onNewPost(p){
   if(!state.me||p.author_id===state.me.id)return;
-  feed.newest=p.created_at;feed.fresh++;
+  const t=p.photo_path?'photos':'texts';
+  feed.newest=p.created_at;feed.L[t].fresh++;
   if(state.view==='feed'){
     markFeedSeen();
-    if($('feedList').scrollTop<40&&!$('overlay'))loadFeed(true);else renderFeed();
+    if(t===feed.tab&&$('feedList').scrollTop<40&&!$('overlay'))loadFeed(true);
+    else if(t===feed.tab)renderFeed();else syncFeedTabs();
   }else updateFeedDot();
 }
 
@@ -2921,7 +2958,7 @@ function imgSize(blob){
     i.onload=()=>{res({w:i.naturalWidth,h:i.naturalHeight});URL.revokeObjectURL(u);};
     i.onerror=()=>{res({w:null,h:null});URL.revokeObjectURL(u);};i.src=u;});
 }
-function openNewPost(){
+function openNewPost(withPhoto=false){
   let file=null,preview=null;
   openSheet('Νέα δημοσίευση',`<div class="np">
       <button class="np-pick" id="npPick">${ICON_IMG}<span>Πρόσθεσε φωτογραφία</span></button>
@@ -2969,7 +3006,9 @@ function openNewPost(){
       if(error)throw error;
       if(preview)URL.revokeObjectURL(preview);
       closeSheet();
-      feed.posts.unshift(data);if(state.myPosts)state.myPosts.unshift(data);
+      const t=data.photo_path?'photos':'texts';
+      feed.L[t].posts.unshift(data);if(state.myPosts)state.myPosts.unshift(data);
+      if(feed.tab!==t){feed.tab=t;lsSet('fc-feed-tab',t);syncFeedTabs();}
       if(state.view==='profile')renderProfile();else setView('feed');
       renderFeed();$('feedList').scrollTop=0;
       toast('Δημοσιεύτηκε');
@@ -2979,7 +3018,7 @@ function openNewPost(){
       btn.disabled=false;btn.textContent='Κοινοποίηση';toast('Δεν δημοσιεύτηκε. Δοκίμασε ξανά.');
     }
   };
-  cap.focus();
+  if(withPhoto===true)$('npFile').click();else cap.focus();
 }
 syncComposer();
 </script>
