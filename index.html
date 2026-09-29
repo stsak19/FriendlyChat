@@ -1795,6 +1795,9 @@ function openMyProfile(){
 
 /* ================= CHAT ================= */
 function activeConv(){return state.convs.find(c=>c.id===state.activeId);}
+// tell the server I've read this chat. Note: supabase calls only run once
+// something waits for them (.then), so a bare sb.rpc(...) would never be sent.
+const markRead=conv=>{if(conv)sb.rpc('mark_read',{conv}).then(({error})=>{if(error)console.warn('mark_read',error);});};
 async function startDirect(uid){
   const existing=directWith(uid);
   if(existing){setSearching(false);searchInp.value='';return openConv(existing.id);}
@@ -1836,11 +1839,12 @@ async function openConv(id){
   state.msgs=(data||[]).reverse();state.hasOlder=(data||[]).length===PAGE;
   renderMessages(true);
   fetchReplyTargets();
-  sb.rpc('mark_read',{conv:id});
+  markRead(id);
   if(!isTouch)$('msgInput').focus();
 }
 function closeChat(){
   resetComposer();
+  markRead(state.activeId);
   state.activeId=null;state.msgs=[];setUrl('');
   $('chat').classList.add('hidden');$('placeholder').classList.remove('hidden');$('app').classList.remove('show-chat');
   renderHome();
@@ -2042,7 +2046,7 @@ function subscribe(){
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages'},({new:m})=>{
       if(m.conversation_id===state.activeId){
         appendMessage(m);
-        if(document.visibilityState==='visible')sb.rpc('mark_read',{conv:m.conversation_id});
+        if(document.visibilityState==='visible')markRead(m.conversation_id);
       }else if(m.sender_id!==state.me.id&&m.kind!=='system'){
         const c=state.convs.find(c=>c.id===m.conversation_id);if(c)c.unread=(c.unread||0)+1;
       }
@@ -2091,7 +2095,7 @@ function subscribe(){
 }
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible'&&state.me){
-    if(state.activeId)sb.rpc('mark_read',{conv:state.activeId});
+    if(state.activeId)markRead(state.activeId);
     reloadConvs();reloadSocial();
   }else if(document.visibilityState==='hidden'&&rec.on){
     // app went to the background mid-recording: keep it, but stop holding
