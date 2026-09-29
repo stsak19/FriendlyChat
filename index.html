@@ -302,7 +302,12 @@ html.night .messages.has-bg .row.theirs .bubble{background:rgba(30,30,35,.86);co
 html.night .messages.has-bg .reacts{background:#232329}
 html.night .messages.has-bg .rq{background:rgba(30,30,35,.7);color:#c9c9d1}
 /* black bubble on a black screen: a thin outline keeps it visible */
-html.night .row.mine .bubble,html.night .row.theirs .bubble.photo.fresh{box-shadow:inset 0 0 0 1px #3a3a42}
+/* night: plain black chat, dark bubbles. Mine is a bit lighter than theirs so you can tell them apart */
+html.night .chat{--mine:#2e2e35;--mine-ink:#f5f5f7;--chat-accent:#f5f5f7}
+html.night .messages{background:#000!important}
+html.night .row.theirs .bubble{background:#141417;color:#f5f5f7;box-shadow:inset 0 0 0 1px #2a2a30}
+html.night .rq{background:#141417;color:#9a9aa6}
+html.night .reacts{background:#1c1c20;border-color:#000}
 html.night .rec .rsend{color:#000}
 .me-top .stat{text-align:center;padding:4px 8px;margin:-4px -8px;border-radius:12px}
 .me-top .stat:active{background:var(--hover)}
@@ -1558,12 +1563,13 @@ const dim=(v,a)=>`linear-gradient(rgba(0,0,0,${a}),rgba(0,0,0,${a})),${v}`;
 function applyChatLook(c){
   const chat=$('chat'),t=THEMES[c.theme]||THEMES.default,night=isNightNow();
   let mine=t.mine||null,ink=t.ink||null,accent=t.accent||null;
-  // night mode: every chat goes black & white (black bubble), whatever its theme
-  if(night){mine='#000000';ink='#f5f5f7';accent='#f5f5f7';}
+  // night mode: the chat's colours and background are set aside (CSS: html.night .chat)
+  if(night){mine=ink=accent=null;}
   if(mine)chat.style.setProperty('--mine',mine);else chat.style.removeProperty('--mine');
   if(ink)chat.style.setProperty('--mine-ink',ink);else chat.style.removeProperty('--mine-ink');
   if(accent)chat.style.setProperty('--chat-accent',accent);else chat.style.removeProperty('--chat-accent');
   const box=$('messages');
+  if(night){box.classList.remove('has-bg');box.style.backgroundImage='';box.dataset.bg='';return;}
   if(!c.background_path&&BGS[c.background_color]){
     const g=BGS[c.background_color].bg;
     box.dataset.bg='c:'+c.background_color;box.style.backgroundImage=g;box.classList.add('has-bg');return;
@@ -2832,7 +2838,7 @@ const ICON_MOON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
 const hhmm=d=>d.toLocaleTimeString('el-GR',{hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
 function nightRowHTML(){
   const on=nightEnabled(),{rise,set}=todaySun();
-  const sub=on?`Μαύρο θέμα και μαύρη φούσκα από ${hhmm(set)} έως ${hhmm(rise)}`:'Κλειστή';
+  const sub=on?`Μαύρο φόντο και σκούρες φούσκες από ${hhmm(set)} έως ${hhmm(rise)}`:'Κλειστή';
   return `<div class="set-item">${ICON_MOON}<div class="tx"><b>Νυχτερινή λειτουργία</b><span>${sub}</span></div>
     <button class="switch${on?' on':''}" id="nightSwitch" role="switch" aria-checked="${on}" aria-label="Νυχτερινή λειτουργία"></button></div>`;
 }
