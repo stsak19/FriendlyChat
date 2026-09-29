@@ -483,6 +483,17 @@ button.set-item:active{background:var(--hover)}
 .tile{aspect-ratio:1;background:var(--field) center/cover no-repeat;position:relative;overflow:hidden;text-align:left}
 .tile.txt{padding:9px;background:linear-gradient(150deg,var(--accent-soft),var(--field))}
 .tile.txt span{display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden;font-size:12.5px;line-height:1.35;overflow-wrap:anywhere;white-space:pre-wrap}
+.ptabs{display:flex;border-top:1px solid var(--line);margin-top:10px}
+.ptabs button{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:11px 0 10px;color:var(--muted);font-weight:600;font-size:14px;border-top:1.5px solid transparent;margin-top:-1px}
+.ptabs button svg{width:19px;height:19px}
+.ptabs button i{font-style:normal;font-weight:500;font-size:12.5px;opacity:.8}
+.ptabs button.on{color:var(--text);border-top-color:var(--text)}
+.ptabs+.grid{margin-top:0}
+.tlist{display:flex;flex-direction:column}
+.tcard{display:block;width:100%;text-align:left;padding:14px 16px;border-bottom:1px solid var(--line)}
+.tcard:active{background:var(--hover)}
+.tcard .tt{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;font-size:15.5px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere}
+.tcard .tw{display:block;font-size:12px;color:var(--muted);margin-top:6px}
 .grid-empty{padding:26px 24px;text-align:center;color:var(--muted);font-size:14px}
 .grid-empty b{display:block;color:var(--text);font-size:16px;margin-bottom:6px}
 .me-head .icon-btn svg{width:26px;height:26px}
@@ -703,6 +714,7 @@ const state = {
   replyCache: new Map(), // quoted messages that aren't loaded in the chat (id -> msg or null)
   myPosts: null,  // my posts for the profile grid (null = not loaded)
   myPostsLoading: false,
+  profileTab: 'photos', // photos | texts
 };
 
 /* ================= HELPERS ================= */
@@ -1026,7 +1038,7 @@ function renderProfile(){
       <button class="stat" id="friendsStat" aria-label="Οι φίλοι σου"><b>${fr.length}</b><span>φίλοι</span></button></div></div>
     <div class="me-info"><div class="nm">${esc(nameOf(me))}</div>${me.bio?`<div class="bio">${linkify(me.bio)}</div>`:''}</div>
     <div class="me-btns"><button class="btn btn-soft" id="editProfileBtn">Επεξεργασία προφίλ</button><button class="btn btn-soft" id="profileNewPost">Νέα δημοσίευση</button></div>
-    <div id="myGrid">${posts?(posts.length?gridHTML(posts):`<div class="grid-empty"><b>Καμία δημοσίευση ακόμα</b>Ό,τι ανεβάζεις το βλέπουν μόνο οι φίλοι σου.</div>`):'<div class="grid-empty">Φόρτωση…</div>'}</div>
+    <div id="myGrid">${posts?postsSectionHTML(posts,state.profileTab,true):'<div class="grid-empty">Φόρτωση…</div>'}</div>
     <div style="height:24px"></div>`;
   pane.scrollTop=keep;
   if(photo)$('myPic').onclick=()=>viewPhoto(photo);
@@ -1034,7 +1046,7 @@ function renderProfile(){
   $('editProfileBtn').onclick=openMyProfile;
   $('profileNewPost').onclick=openNewPost;
   $('settingsBtn').onclick=openSettings;
-  wireGrid($('myGrid'),posts||[]);
+  wireSection($('myGrid'),posts||[],t=>{state.profileTab=t;renderProfile();});
 }
 // Settings (the ☰ on my profile)
 let settingsDraw=null;
@@ -1217,6 +1229,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet();});
 function openUser(p){
   if(!p)return;
   let posts; // their posts (friends only), loaded once
+  let tab='photos';
   const draw=()=>{
     // use the freshest copy we have (friends list is reloaded more often)
     p=state.friends.find(f=>f.id===p.id)||p;
@@ -1231,10 +1244,10 @@ function openUser(p){
     $('sheetBody').innerHTML=`<div class="profile-card"><div id="userPic">${avP(p,'xxl'+(photo?' zoomable':''))}</div><h3>${esc(nameOf(p))}</h3><div class="u">@${esc(p.username)}</div>
       ${p.bio?`<p class="bio">${linkify(p.bio)}</p>`:''}
       <div class="btns">${btns}</div>${note}</div>`+
-      (r==='friends'?`<div id="userGrid">${posts?(posts.length?gridHTML(posts):`<div class="grid-empty">Δεν έχει δημοσιεύσεις ακόμα.</div>`):'<div class="grid-empty">Φόρτωση…</div>'}</div>`:'');
+      (r==='friends'?`<div id="userGrid">${posts?postsSectionHTML(posts,tab,false):'<div class="grid-empty">Φόρτωση…</div>'}</div>`:'');
     wireActions($('sheetBody'));
     if(r==='friends'){
-      if(posts)wireGrid($('userGrid'),posts);
+      if(posts)wireSection($('userGrid'),posts,t=>{tab=t;draw();});
       else if(posts===undefined){posts=null;loadUserPosts(p.id).then(x=>{posts=x;if(sheetRefresher===draw&&$('overlay'))draw();});}
     }
     if(photo)$('userPic').onclick=()=>viewPhoto(photo);
@@ -2871,6 +2884,25 @@ function gridHTML(posts){
     if(p.photo_path){const u=postUrl(p.photo_path);return `<button class="tile" data-post="${p.id}" aria-label="Δημοσίευση"${u?` style="background-image:url(&quot;${esc(u)}&quot;)"`:''}></button>`;}
     return `<button class="tile txt" data-post="${p.id}"><span>${esc(p.caption)}</span></button>`;
   }).join('')}</div>`;
+}
+const ICON_GRID='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>';
+const ICON_TEXT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 11h16M4 16h10"/></svg>';
+// profile: two sections, photos (grid) and texts (list)
+function postsSectionHTML(posts,tab,mine){
+  const photos=posts.filter(p=>p.photo_path),texts=posts.filter(p=>!p.photo_path);
+  let h=`<div class="ptabs" role="tablist">
+    <button role="tab" data-ptab="photos" class="${tab==='photos'?'on':''}" aria-selected="${tab==='photos'}">${ICON_GRID}<span>Φωτογραφίες</span><i>${photos.length}</i></button>
+    <button role="tab" data-ptab="texts" class="${tab==='texts'?'on':''}" aria-selected="${tab==='texts'}">${ICON_TEXT}<span>Κείμενα</span><i>${texts.length}</i></button></div>`;
+  if(tab==='photos')h+=photos.length?gridHTML(photos)
+    :`<div class="grid-empty">${mine?'<b>Καμία φωτογραφία ακόμα</b>Ό,τι ανεβάζεις το βλέπουν μόνο οι φίλοι σου.':'Δεν έχει ανεβάσει φωτογραφίες ακόμα.'}</div>`;
+  else h+=texts.length?`<div class="tlist">${texts.map(p=>`<button class="tcard" data-post="${p.id}"><span class="tt">${esc(p.caption)}</span><span class="tw">${esc(relLong(p.created_at))}</span></button>`).join('')}</div>`
+    :`<div class="grid-empty">${mine?'<b>Κανένα κείμενο ακόμα</b>Γράψε κάτι που σου αρέσει: μια σκέψη, ένα τραγούδι, ένα βιβλίο.':'Δεν έχει ανεβάσει κείμενα ακόμα.'}</div>`;
+  return h;
+}
+function wireSection(root,posts,setTab){
+  if(!root)return;
+  root.querySelectorAll('[data-ptab]').forEach(b=>b.onclick=()=>{if(!b.classList.contains('on'))setTab(b.dataset.ptab);});
+  wireGrid(root,posts);
 }
 function wireGrid(root,posts){
   if(!root)return;
