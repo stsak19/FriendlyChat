@@ -126,6 +126,10 @@ aside{width:400px;flex-shrink:0;border-right:1px solid var(--line);display:flex;
 .conv.on{background:var(--hover)}
 .conv-body{flex:1;min-width:0}
 .conv-name{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conv-name.flex{display:flex;align-items:center;gap:5px}
+.conv-name .nm-t{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.mute-ic{width:15px;height:15px;flex-shrink:0;color:var(--muted)}
+.conv.muted .dot{background:var(--muted)}
 .conv-sub{display:flex;font-size:14px;color:var(--muted);margin-top:1px;min-width:0}
 .conv-sub .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .conv-sub .w{white-space:nowrap;flex-shrink:0}
@@ -173,11 +177,12 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;backgrou
 .chat-head .t{flex:1;min-width:0;text-align:left;display:flex;align-items:center;gap:10px}
 .chat-head .t .tt{min-width:0}
 .chat-head .t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:16px}
+.chat-head .t b .mute-ic{display:inline-block;width:14px;height:14px;vertical-align:-2px;margin-left:5px}
 .chat-head .t span{font-size:12px;color:var(--muted);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .back{display:none}
-.messages{flex:1;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:14px 12px 6px;display:flex;flex-direction:column}
+.messages{flex:1;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:14px 12px 6px;display:flex;flex-direction:column}
 .day{align-self:center;font-size:12px;color:var(--muted);margin:14px 0 8px;font-weight:600}
-.row{display:flex;flex-direction:column;max-width:75%;margin-top:2px}
+.row{display:flex;flex-direction:column;max-width:75%;margin-top:2px;position:relative}
 .row.mine{align-self:flex-end;align-items:flex-end}
 .row.theirs{align-self:flex-start;align-items:flex-start}
 .row.first{margin-top:10px}
@@ -285,6 +290,7 @@ html.night{
 }
 html.night .messages.has-bg .row.theirs .bubble{background:rgba(30,30,35,.86);color:#f5f5f7}
 html.night .messages.has-bg .reacts{background:#232329}
+html.night .messages.has-bg .rq{background:rgba(30,30,35,.7);color:#c9c9d1}
 .me-top .stat{text-align:center;padding:4px 8px;margin:-4px -8px;border-radius:12px}
 .me-top .stat:active{background:var(--hover)}
 .me-top .stat b{display:block;font-size:19px}
@@ -302,7 +308,7 @@ html.night .messages.has-bg .reacts{background:#232329}
 .send{color:var(--chat-accent)}
 .messages{background-position:center;background-size:cover;background-repeat:no-repeat}
 .messages.has-bg .row.theirs .bubble{background:rgba(255,255,255,.88);color:#0b0b0f;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
-.messages.has-bg .day,.messages.has-bg .stamp,.messages.has-bg .sender,.messages.has-bg .sys,.messages.has-bg .chat-intro span{color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.7)}
+.messages.has-bg .day,.messages.has-bg .stamp,.messages.has-bg .sender,.messages.has-bg .sys,.messages.has-bg .chat-intro span,.messages.has-bg .rq-label,.messages.has-bg .edited{color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.7)}
 .messages.has-bg .chat-intro b{color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.7)}
 .messages.has-bg .day,.messages.has-bg .sys{background:rgba(0,0,0,.35);padding:3px 10px;border-radius:999px;text-shadow:none}
 .chat-intro .ttl{display:inline-flex!important;align-items:center;gap:5px;margin-top:12px;font-size:12.5px;background:var(--field);color:var(--muted);padding:5px 11px;border-radius:999px}
@@ -334,6 +340,8 @@ html.night .messages.has-bg .reacts{background:#232329}
 .set-item .tx span{display:block;color:var(--muted);font-size:13px;margin-top:1px}
 .set-item.danger{color:var(--danger)}
 button.set-item:active{background:var(--hover)}
+.set-item.mute-opt{padding-left:48px}
+.set-item.mute-opt .tx b{font-weight:500}
 .switch{position:relative;width:51px;height:31px;flex-shrink:0;border-radius:999px;background:var(--line);transition:background .2s}
 .switch::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.25);transition:transform .2s}
 .switch.on{background:var(--ok)}
@@ -341,8 +349,8 @@ button.set-item:active{background:var(--hover)}
 .switch:disabled{opacity:.45;cursor:default}
 .switch.busy{opacity:.6}
 /* reactions */
-.bubble{position:relative}
-@media (pointer:coarse){.bubble{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}}
+.bubble{position:relative;z-index:1}
+@media (pointer:coarse){.bubble{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:pan-y}}
 .row.has-rx{margin-bottom:4px}
 .reacts{position:relative;z-index:1;margin-top:-8px;display:inline-flex;align-items:center;gap:1px;background:var(--field);border:2px solid var(--bg);border-radius:999px;padding:1px 6px;font-size:13px;line-height:18px}
 .reacts span{font-size:12px;color:var(--muted);margin-left:3px;font-weight:600}
@@ -365,9 +373,10 @@ button.set-item:active{background:var(--hover)}
 .rx-more[hidden]{display:none}
 .rx-more button{font-size:26px;height:44px;border-radius:12px}
 .rx-more button.on{background:var(--field)}
-.rx-menu{position:fixed;min-width:180px;background:var(--panel);border-radius:14px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,.25)}
-.rx-menu button{display:flex;justify-content:space-between;align-items:center;width:100%;padding:12px 16px;font-weight:600;font-size:15px}
+.rx-menu{position:fixed;min-width:210px;background:var(--panel);border-radius:14px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+.rx-menu button{display:flex;justify-content:space-between;align-items:center;gap:16px;width:100%;padding:12px 16px;font-weight:600;font-size:15px}
 .rx-menu button+button{border-top:1px solid var(--line)}
+.rx-menu button.danger{color:var(--danger)}
 .rx-menu svg{width:20px;height:20px}
 .rx-who{display:flex;align-items:center;gap:12px;padding:8px 16px;width:100%;text-align:left}
 .rx-who .n{flex:1;min-width:0}
@@ -399,6 +408,92 @@ button.set-item:active{background:var(--hover)}
 .send-photo .note{display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--muted)}
 .send-photo .note svg{width:16px;height:16px}
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;z-index:60;max-width:90vw}
+
+/* replies (Instagram style: label + faded quote above the bubble) */
+.rq-label{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted);margin:0 10px 3px}
+.rq-label svg{width:13px;height:13px;flex-shrink:0}
+.rq{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere;white-space:pre-wrap;
+  max-width:100%;text-align:left;font-size:14px;line-height:1.35;padding:8px 13px 16px;margin-bottom:-11px;border-radius:18px;background:var(--field);color:var(--muted);opacity:.85}
+.rq.gone{font-style:italic}
+.messages.has-bg .rq{background:rgba(255,255,255,.72);color:#3a3a44}
+.bubble.flash{animation:flash 1.3s ease-out}
+@keyframes flash{0%,40%{box-shadow:0 0 0 3px var(--chat-accent)}100%{box-shadow:0 0 0 3px transparent}}
+.edited{font-size:11px;color:var(--muted);margin:2px 10px 0}
+/* swipe to reply */
+.row.swipe-back{transition:transform .2s ease-out}
+.swipe-ic{position:absolute;left:-38px;top:50%;width:30px;height:30px;border-radius:50%;background:var(--field);color:var(--text);display:grid;place-items:center;opacity:0;transform:translateY(-50%) scale(.6)}
+.swipe-ic svg{width:17px;height:17px}
+/* reply / edit bar above the composer */
+.reply-bar{display:flex;align-items:center;gap:10px;padding:9px 12px 3px 16px;border-top:1px solid var(--line);flex-shrink:0}
+.reply-bar>svg{width:18px;height:18px;color:var(--muted);flex-shrink:0}
+.reply-bar .tx{flex:1;min-width:0}
+.reply-bar b{display:block;font-size:13px;font-weight:600}
+.reply-bar span{display:block;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.reply-bar button{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:var(--muted);flex-shrink:0}
+.reply-bar button svg{width:18px;height:18px}
+/* voice messages */
+.mic-btn{margin-right:0;margin-left:2px;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.rec{flex:1;display:none;align-items:center;gap:10px;background:var(--field);border-radius:24px;padding:4px 4px 4px 14px;min-height:44px;overflow:hidden}
+.composer.recording .box{display:none}
+.composer.recording .rec{display:flex}
+.rec .rdot{width:10px;height:10px;border-radius:50%;background:var(--danger);flex-shrink:0;animation:blink 1s ease-in-out infinite}
+@keyframes blink{50%{opacity:.25}}
+.rec .rtime{font-variant-numeric:tabular-nums;font-weight:600;min-width:36px}
+.rec .live{flex:1;display:flex;align-items:center;justify-content:flex-end;gap:2px;height:26px;overflow:hidden;min-width:0}
+.rec .live i{width:3px;border-radius:2px;background:var(--danger);flex-shrink:0;opacity:.85}
+.rec .rhint{color:var(--muted);font-size:13px;white-space:nowrap;padding-right:10px;transform:translateX(var(--sx,0px))}
+.rec .rbtn{width:36px;height:36px;border-radius:50%;display:none;place-items:center;flex-shrink:0;color:var(--muted)}
+.rec .rbtn svg{width:20px;height:20px}
+.rec .rsend{background:var(--chat-accent);color:#fff}
+.rec.locked .rbtn{display:grid}
+.rec.locked .rhint{display:none}
+.rec.locked{padding-left:4px}
+.bubble.voice{display:flex;align-items:center;gap:9px;padding:7px 14px 7px 7px;white-space:normal}
+.vplay{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;background:rgba(255,255,255,.22)}
+.row.theirs .vplay{background:rgba(128,128,128,.18)}
+.vplay svg{width:15px;height:15px}
+.wave{display:flex;align-items:center;gap:2px;height:28px;width:clamp(96px,38vw,170px)}
+.wave i{flex:1;min-width:2px;max-width:3px;border-radius:2px;background:currentColor}
+.bubble.voice.cur .wave i{opacity:.38}
+.bubble.voice.cur .wave i.on{opacity:1}
+.vdur{font-size:12.5px;font-variant-numeric:tabular-nums;opacity:.85;min-width:30px;text-align:right}
+
+/* feed */
+.top .uname.left{text-align:left}
+.nav-ic .ndot{position:absolute;top:-1px;right:-5px;width:9px;height:9px;border-radius:50%;background:var(--danger);border:2px solid var(--nav)}
+#feedList{position:relative}
+.post{border-bottom:1px solid var(--line);padding-bottom:12px}
+.post-head{display:flex;align-items:center;gap:6px;padding:8px 6px 8px 12px}
+.post-head .ph{flex:1;min-width:0;display:flex;align-items:center;gap:10px;text-align:left}
+.post-head .ph .n{min-width:0}
+.post-head .ph b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.post-head .ph span span{display:block;font-size:12px;color:var(--muted)}
+.post-head .icon-btn svg{width:22px;height:22px}
+.post-media{position:relative;width:100%;background:var(--field);overflow:hidden}
+.post-media img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .25s}
+.post-media img.ok{opacity:1}
+.post-cap{padding:10px 14px 0;font-size:14.5px;white-space:pre-wrap;overflow-wrap:anywhere}
+.post-cap b{margin-right:6px}
+.post-text{padding:2px 16px 0;font-size:18px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere}
+.post-cap.clamp,.post-text.clamp{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.more-btn{color:var(--muted);font-size:14px;padding:2px 14px 0}
+.post a{color:var(--accent)}
+.new-pill{position:sticky;top:10px;z-index:3;display:block;margin:10px auto -46px;padding:8px 16px;border-radius:999px;background:var(--accent);color:#fff;font-weight:600;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.2)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-top:6px}
+.tile{aspect-ratio:1;background:var(--field) center/cover no-repeat;position:relative;overflow:hidden;text-align:left}
+.tile.txt{padding:9px;background:linear-gradient(150deg,var(--accent-soft),var(--field))}
+.tile.txt span{display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden;font-size:12.5px;line-height:1.35;overflow-wrap:anywhere;white-space:pre-wrap}
+.grid-empty{padding:26px 24px;text-align:center;color:var(--muted);font-size:14px}
+.grid-empty b{display:block;color:var(--text);font-size:16px;margin-bottom:6px}
+.me-head .icon-btn svg{width:26px;height:26px}
+.np{display:flex;flex-direction:column;gap:12px;padding:0 16px}
+.np-pick{display:flex;align-items:center;justify-content:center;gap:10px;height:120px;border-radius:14px;border:2px dashed var(--line);color:var(--muted);font-weight:600}
+.np-pick svg{width:26px;height:26px}
+.np-prev{position:relative;border-radius:14px;overflow:hidden;background:var(--field)}
+.np-prev img{display:block;width:100%;max-height:48dvh;object-fit:contain}
+.np-x{position:absolute;top:8px;right:8px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;display:grid;place-items:center}
+.np-x svg{width:18px;height:18px}
+.np .hint{display:flex;justify-content:space-between;margin-top:-4px}
 
 @media (max-width:760px){
   aside{width:100%;border-right:0}
@@ -497,9 +592,23 @@ button.set-item:active{background:var(--hover)}
     </div>
    </div>
 
+   <div class="pane" id="feedPane" hidden>
+    <div class="top">
+      <div class="uname left">Ροή</div>
+      <button class="icon-btn" id="newPostBtn" aria-label="Νέα δημοσίευση">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="M12 8v8M8 12h8"/></svg>
+      </button>
+    </div>
+    <div class="scroll" id="feedList"></div>
+   </div>
+
    <div class="pane scroll" id="profilePane" hidden></div>
 
    <nav class="navbar" aria-label="Πλοήγηση">
+     <button class="nav-btn" data-view="feed" id="navFeed" aria-label="Ροή">
+       <span class="nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1Z"/></svg><span class="ndot hidden" id="feedDot"></span></span>
+       <span>Ροή</span>
+     </button>
      <button class="nav-btn on" data-view="messages" id="navMsgs" aria-label="Μηνύματα">
        <span class="nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.3 7.5L3 21l2-5.3A8.4 8.4 0 1 1 21 11.5Z"/></svg><span class="badge hidden" id="navBadge"></span></span>
        <span>Μηνύματα</span>
@@ -530,12 +639,21 @@ button.set-item:active{background:var(--hover)}
         </button>
       </div>
       <div class="messages" id="messages"></div>
+      <div class="reply-bar hidden" id="replyBar"></div>
       <form class="composer" id="composer">
         <div class="box">
           <button type="button" class="ph-btn" id="photoBtn" aria-label="Στείλε φωτογραφία"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.8"/><path d="m21 15-5-5L5 21"/></svg></button>
           <input type="file" id="photoFile" accept="image/*" hidden>
           <textarea id="msgInput" rows="1" placeholder="Μήνυμα…" maxlength="4000"></textarea>
-          <button class="send" id="sendBtn" type="submit" disabled>Αποστολή</button>
+          <button type="button" class="ph-btn mic-btn" id="micBtn" aria-label="Φωνητικό μήνυμα (κράτα πατημένο ή πάτα)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5 10.5a7 7 0 0 0 14 0M12 17.5V21.5"/></svg></button>
+          <button class="send hidden" id="sendBtn" type="submit" disabled>Αποστολή</button>
+        </div>
+        <div class="rec" id="rec">
+          <button type="button" class="rbtn" id="recDel" aria-label="Διαγραφή ηχογράφησης"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button>
+          <span class="rdot"></span><span class="rtime" id="recTime">0:00</span>
+          <span class="live" id="recLive"></span>
+          <span class="rhint">‹ Σύρε για ακύρωση</span>
+          <button type="button" class="rbtn rsend" id="recSend" aria-label="Αποστολή φωνητικού"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4Z"/></svg></button>
         </div>
       </form>
     </div>
@@ -561,8 +679,9 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {auth:{storage:auth
 
 const USERNAME_RE = /^[a-z0-9_]{3,24}$/;
 const PAGE = 50;
-const MSG_COLS = 'id,conversation_id,sender_id,content,kind,created_at,reactions:message_reactions(user_id,emoji)';
+const MSG_COLS = 'id,conversation_id,sender_id,content,kind,created_at,reply_to,edited_at,meta,reactions:message_reactions(user_id,emoji)';
 const BIO_MAX = 150;
+const EDIT_MS = 15*60e3; // messages can be edited for 15 minutes
 const PROFILE_COLS = 'id,username,display_name,avatar_url,bio';
 const $ = (id) => document.getElementById(id);
 const isTouch = matchMedia('(pointer:coarse)').matches;
@@ -579,6 +698,11 @@ const state = {
   msgs: [],
   hasOlder: false,
   channel: null,
+  replyTo: null,  // message I'm replying to
+  editing: null,  // message I'm editing
+  replyCache: new Map(), // quoted messages that aren't loaded in the chat (id -> msg or null)
+  myPosts: null,  // my posts for the profile grid (null = not loaded)
+  myPostsLoading: false,
 };
 
 /* ================= HELPERS ================= */
@@ -613,6 +737,8 @@ function rel(d){
   const dd=Math.floor(h/24);if(dd<7)return dd+' ημ.';
   return Math.floor(dd/7)+' εβδ.';
 }
+// 0:07, 1:00
+function fmtDur(ms){const s=Math.max(0,Math.round((ms||0)/1000));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');}
 function toast(t){const el=document.createElement('div');el.className='toast';el.textContent=t;document.body.appendChild(el);setTimeout(()=>el.remove(),2800);}
 function debounce(fn,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);};}
 function others(c){return (c.members||[]).filter(m=>m.id!==state.me.id);}
@@ -622,6 +748,15 @@ function memberFirst(m){return m?.nickname||firstName(m);}
 function convTitle(c){
   if(c.is_group)return c.name||'Ομάδα';
   return memberName(others(c)[0]);
+}
+// muted_until comes back as a time, or "infinity" for "until I turn it back on"
+function isMuted(c){const u=c?.muted_until;if(!u)return false;if(u==='infinity')return true;return new Date(u)>Date.now();}
+// short text for a message (quotes, previews)
+function previewOf(m){
+  if(!m)return 'Το μήνυμα δεν είναι πια διαθέσιμο';
+  if(m.kind==='photo')return '📷 Φωτογραφία';
+  if(m.kind==='voice')return '🎤 Φωνητικό μήνυμα';
+  return m.content;
 }
 
 /* ---- chat themes (shared by everyone in the conversation) ---- */
@@ -689,6 +824,15 @@ const TTL_MS=24*3600e3;
 const ICON_IMG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.8"/><path d="m21 15-5-5L5 21"/></svg>';
 const ICON_PLUS='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
 const ICON_CAM='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3Z"/><circle cx="12" cy="13" r="3.5"/></svg>';
+const ICON_REPLY='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>';
+const ICON_EDIT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 0 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>';
+const ICON_UNDO='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg>';
+const ICON_COPY='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>';
+const ICON_X='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+const ICON_BELL_OFF='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.6 3.9A6 6 0 0 1 18 8c0 3 .5 5 1.3 6.5M6 8c0 7-3 9-3 9h14"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/><path d="m2 2 20 20"/></svg>';
+const ICON_PLAY='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.6v14.8a1 1 0 0 0 1.5.9l11.8-7.4a1 1 0 0 0 0-1.8L8.5 3.7A1 1 0 0 0 7 4.6Z"/></svg>';
+const ICON_PAUSE='<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4.2" height="16" rx="1.2"/><rect x="13.8" y="4" width="4.2" height="16" rx="1.2"/></svg>';
+const muteIcon=()=>ICON_BELL_OFF.replace('<svg ','<svg class="mute-ic" aria-label="Σε σίγαση" ');
 
 /* ================= AUTH ================= */
 function showAuthMsg(t,type='err'){const b=$('authMsg');b.textContent=t;b.className='msg-box '+type;}
@@ -787,11 +931,13 @@ async function enterApp(){
   subscribe();
   entering=false;
   pushSync();
+  checkFeedDot();
   if(location.search)openDeepLink(location.search);
 }
 function showAuth(){
   setView('messages');
-  Object.assign(state,{me:null,convs:[],friends:[],incoming:[],outgoing:[],activeId:null});
+  Object.assign(state,{me:null,convs:[],friends:[],incoming:[],outgoing:[],activeId:null,replyTo:null,editing:null,myPosts:null});
+  Object.assign(feed,{posts:[],loaded:false,more:true,fresh:0,newest:null});$('feedDot').classList.add('hidden');
   if(state.channel){sb.removeChannel(state.channel);state.channel=null;}
   $('app').classList.add('hidden');$('auth').classList.remove('hidden');document.title='FriendlyChat';
 }
@@ -839,7 +985,8 @@ function renderMe(){
 function renderHome(){
   if(!state.me)return;
   renderFriends();renderTabs();renderConvs();
-  const total=state.convs.reduce((s,c)=>s+(c.id===state.activeId?0:(c.unread||0)),0)+state.incoming.length;
+  // muted chats don't count towards the badge (like Instagram)
+  const total=state.convs.reduce((s,c)=>s+(c.id===state.activeId||isMuted(c)?0:(c.unread||0)),0)+state.incoming.length;
   document.title=total?`(${total}) FriendlyChat`:'FriendlyChat';
   const nb=$('navBadge');nb.textContent=total>9?'9+':total;nb.classList.toggle('hidden',!total);
   renderProfile();
@@ -849,43 +996,60 @@ function renderHome(){
 state.view='messages';
 function setView(v){
   state.view=v;
-  $('msgPane').hidden=v!=='messages';$('profilePane').hidden=v!=='profile';
+  $('msgPane').hidden=v!=='messages';$('profilePane').hidden=v!=='profile';$('feedPane').hidden=v!=='feed';
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('on',b.dataset.view===v));
   if(v==='profile')renderProfile();
+  if(v==='feed')showFeed();
 }
 document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>{
   if(b.dataset.view===state.view&&v0(b))return;
   setView(b.dataset.view);
 });
-function v0(b){ // tapping "Messages" again scrolls to top
+function v0(b){ // tapping the current tab again scrolls to top
   if(b.dataset.view==='messages'){$('homeView').scrollTop=0;return true;}
+  if(b.dataset.view==='feed'){const l=$('feedList');if(l.scrollTop<10&&feed.fresh)loadFeed(true);l.scrollTo({top:0,behavior:'smooth'});return true;}
   $('profilePane').scrollTop=0;return true;
 }
 const ICON_LOCK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+const ICON_MENU='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>';
 function renderProfile(){
+  if(settingsDraw&&sheetRefresher===settingsDraw&&$('overlay'))settingsDraw();
   const me=state.me;if(!me||state.view!=='profile')return;
+  if(state.myPosts===null&&!state.myPostsLoading)loadMyPosts();
   const photo=safeAvatar(me.avatar_url);
   const pane=$('profilePane');const keep=pane.scrollTop;
-  const fr=state.friends;
+  const fr=state.friends,posts=state.myPosts;
   pane.innerHTML=`
-    <div class="me-head"><b>${esc(me.username)}</b></div>
+    <div class="me-head"><b>${esc(me.username)}</b><button class="icon-btn" id="settingsBtn" aria-label="Ρυθμίσεις">${ICON_MENU}</button></div>
     <div class="me-top"><div id="myPic">${avP(me,'xl'+(photo?' zoomable':''))}</div>
-      <div class="stats"><button class="stat" id="friendsStat" aria-label="Οι φίλοι σου"><b>${fr.length}</b><span>φίλοι</span></button></div></div>
+      <div class="stats"><div class="stat"><b>${posts?posts.length:'–'}</b><span>δημοσιεύσεις</span></div>
+      <button class="stat" id="friendsStat" aria-label="Οι φίλοι σου"><b>${fr.length}</b><span>φίλοι</span></button></div></div>
     <div class="me-info"><div class="nm">${esc(nameOf(me))}</div>${me.bio?`<div class="bio">${linkify(me.bio)}</div>`:''}</div>
-    <div class="me-btns"><button class="btn btn-soft" id="editProfileBtn">Επεξεργασία προφίλ</button></div>
-    ${settingsHTML()}
+    <div class="me-btns"><button class="btn btn-soft" id="editProfileBtn">Επεξεργασία προφίλ</button><button class="btn btn-soft" id="profileNewPost">Νέα δημοσίευση</button></div>
+    <div id="myGrid">${posts?(posts.length?gridHTML(posts):`<div class="grid-empty"><b>Καμία δημοσίευση ακόμα</b>Ό,τι ανεβάζεις το βλέπουν μόνο οι φίλοι σου.</div>`):'<div class="grid-empty">Φόρτωση…</div>'}</div>
     <div style="height:24px"></div>`;
   pane.scrollTop=keep;
   if(photo)$('myPic').onclick=()=>viewPhoto(photo);
   $('friendsStat').onclick=openFriends;
-  $('nightSwitch').onclick=()=>{lsSet('fc-night-off',nightEnabled()?'1':null);applyNight();renderProfile();};
   $('editProfileBtn').onclick=openMyProfile;
-  $('pwBtn').onclick=openChangePassword;
-  const pb=$('pushSwitch');if(pb)pb.onclick=async()=>{
-    if(state.pushBusy)return;state.pushBusy=true;pb.classList.add('busy');pb.classList.toggle('on',!state.pushOn);
-    try{await(state.pushOn?pushDisable():pushEnable());}finally{state.pushBusy=false;renderProfile();}
+  $('profileNewPost').onclick=openNewPost;
+  $('settingsBtn').onclick=openSettings;
+  wireGrid($('myGrid'),posts||[]);
+}
+// Settings (the ☰ on my profile)
+let settingsDraw=null;
+function openSettings(){
+  const draw=()=>{
+    $('sheetBody').innerHTML=settingsHTML().replace('<div class="sect">Ρυθμίσεις</div>','');
+    $('nightSwitch').onclick=()=>{lsSet('fc-night-off',nightEnabled()?'1':null);applyNight();draw();};
+    $('pwBtn').onclick=openChangePassword;
+    const pb=$('pushSwitch');if(pb)pb.onclick=async()=>{
+      if(state.pushBusy)return;state.pushBusy=true;pb.classList.add('busy');pb.classList.toggle('on',!state.pushOn);
+      try{await(state.pushOn?pushDisable():pushEnable());}finally{state.pushBusy=false;renderProfile();}
+    };
+    $('logoutBtn').onclick=async()=>{if(!confirm('Αποσύνδεση;'))return;closeSheet();await pushDisable(false);await sb.auth.signOut();};
   };
-  $('logoutBtn').onclick=async()=>{if(!confirm('Αποσύνδεση;'))return;await pushDisable(false);await sb.auth.signOut();};
+  openSheet('Ρυθμίσεις','');draw();sheetRefresher=settingsDraw=draw;
 }
 // My friends (opens from the "φίλοι" number on my profile)
 function openFriends(){
@@ -908,7 +1072,7 @@ function renderFriends(){
   const row=$('friendsRow');
   let html=`<button class="friend" id="addFriendsBtn"><div class="add-circle">${ICON_PLUS}</div><span class="nm" style="color:var(--muted)">Βρες φίλους</span></button>`;
   html+=state.friends.map(f=>{
-    const c=directWith(f.id);const unread=c&&c.unread&&c.id!==state.activeId;
+    const c=directWith(f.id);const unread=c&&c.unread&&c.id!==state.activeId&&!isMuted(c);
     return `<button class="friend" data-id="${f.id}"><div class="ring${unread?' on':''}">${avP(f,'lg')}</div><span class="nm">${esc(firstName(f))}</span></button>`;
   }).join('');
   row.innerHTML=html;
@@ -916,7 +1080,7 @@ function renderFriends(){
   row.querySelectorAll('.friend[data-id]').forEach(b=>b.onclick=()=>startDirect(b.dataset.id));
 }
 function renderTabs(){
-  const unreadIn=g=>state.convs.filter(c=>c.is_group===g&&c.id!==state.activeId&&c.unread>0).length;
+  const unreadIn=g=>state.convs.filter(c=>c.is_group===g&&c.id!==state.activeId&&c.unread>0&&!isMuted(c)).length;
   document.querySelectorAll('.tabbar .pill').forEach(p=>{
     p.classList.toggle('on',p.dataset.tab===state.tab);
     const u=unreadIn(p.dataset.tab==='groups');
@@ -932,18 +1096,19 @@ $('reqBtn').onclick=openRequests;
 function convRowHTML(c){
   const title=convTitle(c);
   const unread=c.id===state.activeId?0:(c.unread||0);
+  const muted=isMuted(c);
   let text;
   if(unread)text=unread===1?'1 νέο μήνυμα':(unread>9?'9+':unread)+' νέα μηνύματα';
   else if(c.last_message!=null){
-    const lm=c.last_kind==='photo'?'📷 Φωτογραφία':c.last_message;
+    const lm=c.last_kind==='photo'||c.last_kind==='voice'?previewOf({kind:c.last_kind}):c.last_message;
     if(c.last_kind==='system')text=sysText(c,{sender_id:c.last_sender,content:c.last_message});
     else if(c.last_sender===state.me.id)text='Εσύ: '+lm;
     else if(c.is_group){const s=(c.members||[]).find(m=>m.id===c.last_sender);text=(s?memberFirst(s)+': ':'')+lm;}
     else text=lm;
   }else text=c.is_group?'Η ομάδα δημιουργήθηκε':'Πείτε γεια 👋';
-  return `<button class="conv${c.id===state.activeId?' on':''}${unread?' unread':''}" data-id="${c.id}">
+  return `<button class="conv${c.id===state.activeId?' on':''}${unread?' unread':''}${muted?' muted':''}" data-id="${c.id}">
     ${convAvatar(c)}
-    <div class="conv-body"><div class="conv-name">${esc(title)}</div>
+    <div class="conv-body"><div class="conv-name flex"><span class="nm-t">${esc(title)}</span>${muted?muteIcon():''}</div>
       <div class="conv-sub"><span class="t">${esc(text)}</span><span class="w">&nbsp;· ${rel(c.last_message_at)}</span></div></div>
     ${unread?'<span class="dot"></span>':''}</button>`;
 }
@@ -1051,6 +1216,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet();});
 // Another user's profile
 function openUser(p){
   if(!p)return;
+  let posts; // their posts (friends only), loaded once
   const draw=()=>{
     // use the freshest copy we have (friends list is reloaded more often)
     p=state.friends.find(f=>f.id===p.id)||p;
@@ -1064,8 +1230,13 @@ function openUser(p){
     const photo=safeAvatar(p.avatar_url);
     $('sheetBody').innerHTML=`<div class="profile-card"><div id="userPic">${avP(p,'xxl'+(photo?' zoomable':''))}</div><h3>${esc(nameOf(p))}</h3><div class="u">@${esc(p.username)}</div>
       ${p.bio?`<p class="bio">${linkify(p.bio)}</p>`:''}
-      <div class="btns">${btns}</div>${note}</div>`;
+      <div class="btns">${btns}</div>${note}</div>`+
+      (r==='friends'?`<div id="userGrid">${posts?(posts.length?gridHTML(posts):`<div class="grid-empty">Δεν έχει δημοσιεύσεις ακόμα.</div>`):'<div class="grid-empty">Φόρτωση…</div>'}</div>`:'');
     wireActions($('sheetBody'));
+    if(r==='friends'){
+      if(posts)wireGrid($('userGrid'),posts);
+      else if(posts===undefined){posts=null;loadUserPosts(p.id).then(x=>{posts=x;if(sheetRefresher===draw&&$('overlay'))draw();});}
+    }
     if(photo)$('userPic').onclick=()=>viewPhoto(photo);
     const uf=$('unfriend');
     if(uf)uf.onclick=async()=>{if(!confirm(`Αφαίρεση του/της ${nameOf(p)} από τους φίλους;`))return;await doAction('remove',p.id);};
@@ -1139,7 +1310,7 @@ $('composeBtn').onclick=()=>openCompose(false);
 
 // Group info
 function openGroupInfo(c){
-  const sel=new Map();let editing=null;
+  const sel=new Map();let editing=null;let muteOpen=false;
   const draw=()=>{
     c=state.convs.find(x=>x.id===c.id)||c;
     $('sheetBody').dataset.editing=editing||'';
@@ -1150,6 +1321,7 @@ function openGroupInfo(c){
     html+=isAdmin?`<div class="sheet-pad"><label class="f" for="renameInp">Όνομα ομάδας</label>
       <div style="display:flex;gap:8px"><input class="inp" id="renameInp" maxlength="60" value="${esc(c.name||'')}"><button class="btn btn-soft" id="renameBtn">Αποθήκευση</button></div></div>`
       :`<h3 style="text-align:center;margin:0">${esc(c.name||'Ομάδα')}</h3>`;
+    html+=muteHTML(c,muteOpen);
     html+=`<div class="sect">${memberIds.length} μέλη</div>`;
     html+=(c.members||[]).map(m=>`<button class="person mem" data-id="${m.id}">${avP(m,'sm')}
       <div class="n"><b>${esc(memberName(m))}${m.id===state.me.id?' (εσύ)':''}</b><span>@${esc(m.username)}</span></div>
@@ -1165,6 +1337,7 @@ function openGroupInfo(c){
     html+=`<div style="text-align:center;margin-top:18px"><button class="btn-danger" id="leaveBtn">Αποχώρηση από την ομάδα</button></div>`;
     $('sheetBody').innerHTML=html;
     wireCustom(c,draw,v=>{editing=v;});
+    wireMute(c,draw,f=>{muteOpen=f(muteOpen);});
     $('sheetBody').querySelectorAll('.person.mem').forEach(b=>b.onclick=()=>{
       if(b.dataset.id===state.me.id)return openMyProfile();
       openUser((c.members||[]).find(m=>m.id===b.dataset.id));
@@ -1193,6 +1366,38 @@ function openGroupInfo(c){
     };
   };
   openSheet('Λεπτομέρειες ομάδας','');draw();sheetRefresher=draw;
+}
+
+/* ================= MUTE (per person, per chat) ================= */
+const MUTE_OPTS=[[15,'Για 15 λεπτά'],[60,'Για 1 ώρα'],[480,'Για 8 ώρες'],[1440,'Για 24 ώρες'],[0,'Μέχρι να το αλλάξω']];
+function muteSub(c){
+  if(!isMuted(c))return 'Θα λαμβάνεις ειδοποιήσεις για νέα μηνύματα';
+  if(c.muted_until==='infinity')return 'Σε σίγαση μέχρι να το αλλάξεις';
+  const d=new Date(c.muted_until);
+  return `Σε σίγαση έως ${sameDay(d,new Date())?'':d.toLocaleDateString('el-GR',{weekday:'long'})+' '}${hhmm(d)}`;
+}
+function muteHTML(c,open){
+  const on=isMuted(c);
+  let h=`<div class="set-group" style="margin-top:14px"><div class="set-item">${ICON_BELL_OFF}<div class="tx"><b>Σίγαση μηνυμάτων</b><span>${esc(muteSub(c))}</span></div>
+    <button class="switch${on?' on':''}" id="muteSwitch" role="switch" aria-checked="${on}" aria-label="Σίγαση μηνυμάτων"></button></div>`;
+  if(open&&!on)h+=MUTE_OPTS.map(([v,t])=>`<button class="set-item mute-opt" data-min="${v}"><div class="tx"><b>${t}</b></div></button>`).join('');
+  return h+`</div>`;
+}
+function afterMute(){renderHome();if(state.activeId)renderChatHead();}
+function wireMute(c,redraw,setOpen){
+  const sw=$('muteSwitch');if(!sw)return;
+  sw.onclick=async()=>{
+    if(!isMuted(c)){setOpen(o=>!o);redraw();return;}
+    const prev=c.muted_until;c.muted_until=null;redraw();afterMute();
+    const {error}=await sb.rpc('set_mute',{conv:c.id,minutes:null});
+    if(error){c.muted_until=prev;redraw();afterMute();toast('Δεν άλλαξε η σίγαση');}
+  };
+  $('sheetBody').querySelectorAll('.mute-opt').forEach(b=>b.onclick=async()=>{
+    const min=+b.dataset.min;setOpen(()=>false);
+    const {data,error}=await sb.rpc('set_mute',{conv:c.id,minutes:min});
+    if(error){redraw();return toast('Δεν άλλαξε η σίγαση');}
+    c.muted_until=data;redraw();afterMute();toast('Η συνομιλία είναι σε σίγαση');
+  });
 }
 
 /* ================= CHAT SETTINGS: theme, background, nicknames ================= */
@@ -1329,16 +1534,17 @@ function wireCustom(c,redraw,setEditing){
 }
 function openChatSettings(c){
   if(c.is_group)return openGroupInfo(c);
-  let editing=null;
+  let editing=null,muteOpen=false;
   const draw=()=>{
     c=state.convs.find(x=>x.id===c.id)||c;
     const o=others(c)[0];
     $('sheetBody').dataset.editing=editing||'';
     $('sheetBody').innerHTML=`<div class="settings-top"><div style="display:flex;justify-content:center">${avP(o,'xl')}</div>
       <h3>${esc(memberName(o))}</h3><div class="u">${o?.nickname?esc(nameOf(o))+' · ':''}@${esc(o?.username||'')}</div>
-      <button class="btn btn-soft btn-sm" id="seeProfile">Προφίλ</button></div>`+customHTML(c,editing);
+      <button class="btn btn-soft btn-sm" id="seeProfile">Προφίλ</button></div>`+muteHTML(c,muteOpen)+customHTML(c,editing);
     $('seeProfile').onclick=()=>openUser(o);
     wireCustom(c,draw,v=>{editing=v;});
+    wireMute(c,draw,f=>{muteOpen=f(muteOpen);});
   };
   openSheet('Λεπτομέρειες','');draw();sheetRefresher=draw;
 }
@@ -1465,7 +1671,7 @@ function openMyProfile(){
     <div class="photo-edit" id="photoBox">
       <button class="pic" id="picBtn" aria-label="Αλλαγή φωτογραφίας"><span id="picPreview">${avP(me,'xxl')}</span><span class="cam">${ICON_CAM}</span></button>
       <div class="links"><button class="btn-link" id="pickPhoto">Αλλαγή φωτογραφίας</button><button class="btn-danger" id="removePhoto" ${me.avatar_url?'':'hidden'}>Αφαίρεση</button></div>
-      <input type="file" id="photoFile" accept="image/*" hidden>
+      <input type="file" id="avatarFile" accept="image/*" hidden>
     </div>
     <div class="sheet-pad">
       <label class="f" for="dispName">Όνομα</label>
@@ -1487,9 +1693,9 @@ function openMyProfile(){
   bio.addEventListener('input',count);count();
 
   // photo
-  const pick=()=>$('photoFile').click();
+  const pick=()=>$('avatarFile').click();
   $('picBtn').onclick=pick;$('pickPhoto').onclick=pick;
-  $('photoFile').onchange=async e=>{
+  $('avatarFile').onchange=async e=>{
     const f=e.target.files[0];e.target.value='';
     if(!f)return;
     if(!f.type.startsWith('image/'))return toast('Διάλεξε μια εικόνα');
@@ -1577,14 +1783,22 @@ async function startDirect(uid){
 }
 function renderChatHead(){
   const c=activeConv();if(!c)return;
-  $('chatTitle').textContent=convTitle(c);
+  $('chatTitle').innerHTML=esc(convTitle(c))+(isMuted(c)?muteIcon():'');
   $('chatAvatar').innerHTML=convAvatar(c,true);
   if(c.is_group)$('chatSub').textContent=others(c).map(memberFirst).join(', ')||'Μόνο εσύ';
   else{const o=others(c)[0];$('chatSub').textContent=o?o.username:'';}
   applyChatLook(c);
 }
+// leaving a chat: drop the reply/edit, stop any recording or playback
+function resetComposer(){
+  if(rec.on||rec.starting)stopRec(false);
+  stopVoice();
+  if(state.editing){state.editing=null;input.value='';autosize();}
+  state.replyTo=null;renderReplyBar();
+}
 async function openConv(id){
-  state.activeId=id;state.msgs=[];state.hasOlder=false;
+  if(state.activeId!==id)resetComposer();
+  state.activeId=id;state.msgs=[];state.hasOlder=false;state.replyCache=new Map();
   $('placeholder').classList.add('hidden');$('chat').classList.remove('hidden');$('app').classList.add('show-chat');
   const c=activeConv();if(c)c.unread=0;
   setUrl('?c='+id);clearNotifs('conv-'+id);
@@ -1599,10 +1813,12 @@ async function openConv(id){
   (views||[]).forEach(v=>addView(v.message_id,v.user_id));
   state.msgs=(data||[]).reverse();state.hasOlder=(data||[]).length===PAGE;
   renderMessages(true);
+  fetchReplyTargets();
   sb.rpc('mark_read',{conv:id});
   if(!isTouch)$('msgInput').focus();
 }
 function closeChat(){
+  resetComposer();
   state.activeId=null;state.msgs=[];setUrl('');
   $('chat').classList.add('hidden');$('placeholder').classList.remove('hidden');$('app').classList.remove('show-chat');
   renderHome();
@@ -1617,7 +1833,110 @@ async function loadOlder(){
   state.hasOlder=(data||[]).length===PAGE;
   state.msgs=(data||[]).reverse().concat(state.msgs);
   renderMessages(false);box.scrollTop=box.scrollHeight-prevH;
+  fetchReplyTargets();
 }
+
+/* ---- replies ---- */
+function replyTarget(id){return msgById(id)||state.replyCache.get(id)||null;}
+// quoted messages that are older than what's loaded
+async function fetchReplyTargets(){
+  const conv=state.activeId;
+  const need=[...new Set(state.msgs.map(m=>m.reply_to).filter(id=>id&&!msgById(id)&&!state.replyCache.has(id)))];
+  if(!need.length)return;
+  const {data}=await sb.from('messages').select('id,sender_id,content,kind').in('id',need);
+  if(state.activeId!==conv)return;
+  const got=new Map((data||[]).map(x=>[x.id,x]));
+  need.forEach(id=>state.replyCache.set(id,got.get(id)||null));
+  renderMessages(false);
+}
+function replyHTML(m,mine,members){
+  const t=replyTarget(m.reply_to);
+  const first=id=>memberFirst(members.get(id));
+  let label;
+  if(mine){
+    if(!t)label='Απάντησες';
+    else if(t.sender_id===state.me.id)label='Απάντησες στον εαυτό σου';
+    else label=`Απάντησες σε ${first(t.sender_id)}`;
+  }else{
+    const s=first(m.sender_id);
+    if(!t)label=`${s} απάντησε`;
+    else if(t.sender_id===state.me.id)label=`${s} σου απάντησε`;
+    else if(t.sender_id===m.sender_id)label=`${s} απάντησε σε δικό του/της μήνυμα`;
+    else label=`${s} απάντησε σε ${first(t.sender_id)}`;
+  }
+  return `<div class="rq-label">${ICON_REPLY}${esc(label)}</div><button class="rq${t?'':' gone'}" data-jump="${m.reply_to}">${esc(previewOf(t))}</button>`;
+}
+function jumpTo(id){
+  const b=document.querySelector(`#messages .bubble[data-id="${id}"]`);
+  if(!b)return toast(replyTarget(id)?'Το μήνυμα είναι πιο πάνω στη συνομιλία':'Το μήνυμα δεν είναι πια διαθέσιμο');
+  b.scrollIntoView({behavior:'smooth',block:'center'});
+  b.classList.remove('flash');void b.offsetWidth;b.classList.add('flash');
+}
+function renderReplyBar(){
+  const bar=$('replyBar');const e=state.editing,r=state.replyTo;
+  if(!e&&!r){bar.classList.add('hidden');bar.innerHTML='';syncComposer();return;}
+  let title,sub;
+  if(e){title='Επεξεργασία μηνύματος';sub=e.content;}
+  else{
+    const s=(activeConv()?.members||[]).find(x=>x.id===r.sender_id);
+    title=r.sender_id===state.me.id?'Απάντηση στον εαυτό σου':`Απάντηση σε ${s?memberName(s):'…'}`;
+    sub=previewOf(r);
+  }
+  bar.innerHTML=`${e?ICON_EDIT:ICON_REPLY}<div class="tx"><b>${esc(title)}</b><span>${esc(sub)}</span></div><button type="button" id="replyX" aria-label="Ακύρωση">${ICON_X}</button>`;
+  bar.classList.remove('hidden');
+  $('replyX').onclick=()=>{state.editing?cancelEdit():cancelReply();};
+  syncComposer();
+}
+function startReply(m){
+  if(!m||m.kind==='system')return;
+  if(state.editing){state.editing=null;input.value='';autosize();}
+  state.replyTo=m;renderReplyBar();input.focus();
+}
+function cancelReply(){state.replyTo=null;renderReplyBar();}
+function startEdit(m){
+  state.replyTo=null;state.editing=m;
+  input.value=m.content;autosize();renderReplyBar();
+  input.focus();try{input.setSelectionRange(input.value.length,input.value.length);}catch{}
+}
+function cancelEdit(){state.editing=null;input.value='';autosize();renderReplyBar();}
+// mic when empty, "Send" when there's text, "Save" when editing
+function syncComposer(){
+  const has=!!input.value.trim(),ed=!!state.editing,btn=$('sendBtn');
+  btn.disabled=!has;btn.textContent=ed?'Αποθήκευση':'Αποστολή';
+  btn.classList.toggle('hidden',!has&&!ed);
+  $('micBtn').classList.toggle('hidden',has||ed);
+  $('photoBtn').classList.toggle('hidden',ed);
+}
+async function saveEdit(text){
+  const m=state.editing;
+  if(text===m.content){cancelEdit();return;}
+  const before={c:m.content,e:m.edited_at};
+  m.content=text;m.edited_at=new Date().toISOString();cancelEdit();renderMessages(false);
+  const {error}=await sb.rpc('edit_message',{msg:m.id,new_content:text});
+  if(error){
+    m.content=before.c;m.edited_at=before.e;renderMessages(false);
+    return toast(/too_late/.test(error.message)?'Η επεξεργασία γίνεται μόνο στα πρώτα 15 λεπτά':'Δεν αποθηκεύτηκε η αλλαγή');
+  }
+  reloadConvs();
+}
+async function unsendMsg(m){
+  if(!confirm('Αναίρεση αποστολής;\nΤο μήνυμα θα διαγραφεί για όλους στη συνομιλία.'))return;
+  const i=state.msgs.indexOf(m);
+  if(i>=0)state.msgs.splice(i,1);
+  if(state.replyTo?.id===m.id)cancelReply();
+  if(state.editing?.id===m.id)cancelEdit();
+  if(player.id===m.id)stopVoice();
+  renderMessages(false);
+  const {error}=await sb.rpc('unsend_message',{msg:m.id});
+  if(error){
+    if(!msgById(m.id))state.msgs.splice(Math.max(0,i),0,m);
+    renderMessages(false);return toast('Δεν έγινε η αναίρεση αποστολής');
+  }
+  if(m.kind==='voice')sb.storage.from('voice-notes').remove([m.content]);
+  if(m.kind==='photo')sb.storage.from('chat-photos').remove([m.content]);
+  reloadConvs();
+}
+
 function renderMessages(scrollBottom){
   const c=activeConv();
   const members=new Map((c?.members||[]).map(m=>[m.id,m]));
@@ -1637,21 +1956,24 @@ function renderMessages(scrollBottom){
     const newDay=!prev||!sameDay(prev.created_at,m.created_at);
     if(newDay)html+=`<div class="day">${esc(fmtDay(m.created_at))}</div>`;
     const mine=m.sender_id===state.me.id;
-    const first=newDay||prev.kind==='system'||prev.sender_id!==m.sender_id||(new Date(m.created_at)-new Date(prev.created_at))>gap;
-    const last=!next||next.kind==='system'||next.sender_id!==m.sender_id||!sameDay(next.created_at,m.created_at)||(new Date(next.created_at)-new Date(m.created_at))>gap;
+    const first=newDay||!!m.reply_to||prev.kind==='system'||prev.sender_id!==m.sender_id||(new Date(m.created_at)-new Date(prev.created_at))>gap;
+    const last=!next||!!next.reply_to||next.kind==='system'||next.sender_id!==m.sender_id||!sameDay(next.created_at,m.created_at)||(new Date(next.created_at)-new Date(m.created_at))>gap;
     const s=members.get(m.sender_id);
     if(m.kind==='system'){html+=`<div class="sys">${esc(sysText(c,m))}</div>`;return;}
     const rx=m.reactions||[];
-    const photo=m.kind==='photo'?photoBubble(m,mine,c):null;
+    let bubble;
+    if(m.kind==='photo'){const p=photoBubble(m,mine,c);bubble=`<div class="bubble photo${p.cls}" data-id="${m.id}"${p.open?' data-open="1"':''}>${p.html}</div>`;}
+    else if(m.kind==='voice')bubble=voiceBubble(m);
+    else bubble=`<div class="bubble" data-id="${m.id}">${linkify(m.content)}</div>`;
     html+=`<div class="row ${mine?'mine':'theirs'}${first?' first':''}${last?' last':''}${rx.length?' has-rx':''}">`+
-      (c?.is_group&&!mine&&first?`<div class="sender">${esc(s?memberName(s):'Πρώην μέλος')}</div>`:'')+
-      (photo?`<div class="bubble photo${photo.cls}" data-id="${m.id}"${photo.open?' data-open="1"':''}>${photo.html}</div>`
-            :`<div class="bubble" data-id="${m.id}">${linkify(m.content)}</div>`)+
-      reactsHTML(m)+(last?`<div class="stamp">${fmtTime(m.created_at)}</div>`:'')+`</div>`;
+      (m.reply_to?replyHTML(m,mine,members)
+        :(c?.is_group&&!mine&&first?`<div class="sender">${esc(s?memberName(s):'Πρώην μέλος')}</div>`:''))+
+      bubble+reactsHTML(m)+(m.edited_at?`<div class="edited">Επεξεργάστηκε</div>`:'')+(last?`<div class="stamp">${fmtTime(m.created_at)}</div>`:'')+`</div>`;
   });
   box.innerHTML=html;
   const ob=$('olderBtn');if(ob)ob.onclick=loadOlder;
   if(scrollBottom)box.scrollTop=box.scrollHeight;else box.scrollTop=keep;
+  voiceUI();prefetchVoices();
 }
 function appendMessage(m){
   if(state.msgs.some(x=>x.id===m.id))return;
@@ -1661,16 +1983,25 @@ function appendMessage(m){
 }
 const input=$('msgInput');
 function autosize(){input.style.height='auto';input.style.height=Math.min(input.scrollHeight,140)+'px';}
-input.addEventListener('input',()=>{autosize();$('sendBtn').disabled=!input.value.trim();});
-input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!isTouch&&!e.isComposing){e.preventDefault();$('composer').requestSubmit();}});
+input.addEventListener('input',()=>{autosize();syncComposer();});
+input.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&!e.shiftKey&&!isTouch&&!e.isComposing){e.preventDefault();$('composer').requestSubmit();}
+  if(e.key==='Escape'&&(state.editing||state.replyTo)){e.stopPropagation();state.editing?cancelEdit():cancelReply();}
+});
 $('composer').addEventListener('submit',async e=>{
   e.preventDefault();
   const text=input.value.trim();if(!text||!state.activeId)return;
-  const convId=state.activeId;
-  input.value='';autosize();$('sendBtn').disabled=true;
-  const {data,error}=await sb.from('messages').insert({conversation_id:convId,sender_id:state.me.id,content:text})
-    .select(MSG_COLS).single();
-  if(error){toast('Το μήνυμα δεν στάλθηκε');input.value=text;autosize();$('sendBtn').disabled=false;return;}
+  if(state.editing)return saveEdit(text);
+  const convId=state.activeId,reply=state.replyTo;
+  input.value='';autosize();state.replyTo=null;renderReplyBar();
+  const row={conversation_id:convId,sender_id:state.me.id,content:text};
+  if(reply)row.reply_to=reply.id;
+  const {data,error}=await sb.from('messages').insert(row).select(MSG_COLS).single();
+  if(error){
+    toast('Το μήνυμα δεν στάλθηκε');input.value=text;autosize();
+    if(reply&&state.activeId===convId&&!state.replyTo&&!state.editing)state.replyTo=reply;
+    renderReplyBar();return;
+  }
   if(state.activeId===convId)appendMessage(data);
   bumpConv(data);
 });
@@ -1695,6 +2026,30 @@ function subscribe(){
       }
       bumpConv(m);
     })
+    // edited message
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'messages'},({new:m})=>{
+      const x=msgById(m.id)||state.replyCache.get(m.id);
+      if(x){x.content=m.content;x.edited_at=m.edited_at;if(m.conversation_id===state.activeId)renderMessages(false);}
+      if(state.replyTo?.id===m.id)renderReplyBar();
+      reloadConvs();
+    })
+    // unsent (or expired) message
+    .on('postgres_changes',{event:'DELETE',schema:'public',table:'messages'},({old:o})=>{
+      if(!o||o.id==null)return;
+      const i=state.msgs.findIndex(x=>x.id===o.id);
+      if(i>=0){
+        if(player.id===o.id)stopVoice();
+        state.msgs.splice(i,1);
+        if(state.replyTo?.id===o.id)cancelReply();
+        if(state.editing?.id===o.id)cancelEdit();
+        renderMessages(false);
+      }
+      if(state.replyCache.has(o.id)){state.replyCache.set(o.id,null);renderMessages(false);}
+      reloadConvs();
+    })
+    // feed: a friend posted / a post was deleted
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'posts'},({new:p})=>onNewPost(p))
+    .on('postgres_changes',{event:'DELETE',schema:'public',table:'posts'},({old:o})=>{if(o&&o.id!=null)dropPost(o.id);})
     .on('postgres_changes',{event:'*',schema:'public',table:'message_reactions'},({new:n,old:o})=>{
       const id=(n&&n.message_id)||(o&&o.message_id);
       if(state.msgs.some(x=>x.id===id))refreshReactions(id);
@@ -1716,6 +2071,9 @@ document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible'&&state.me){
     if(state.activeId)sb.rpc('mark_read',{conv:state.activeId});
     reloadConvs();reloadSocial();
+  }else if(document.visibilityState==='hidden'&&rec.on){
+    // app went to the background mid-recording: keep it, but stop holding
+    lockRec();
   }
 });
 
@@ -1766,7 +2124,7 @@ $('photoFile').onchange=e=>{
   const f=e.target.files[0];e.target.value='';
   if(!f||!state.activeId)return;
   if(!f.type.startsWith('image/'))return toast('Διάλεξε μια εικόνα');
-  const convId=state.activeId,url=URL.createObjectURL(f);
+  const convId=state.activeId,url=URL.createObjectURL(f),reply=state.replyTo;
   openSheet('Αποστολή φωτογραφίας',`<div class="send-photo"><img src="${url}" alt="">
       <div class="note">${ICON_EYE_ONCE}Θα διαγραφεί μόλις τη δει</div></div>`,
     `<button class="btn btn-primary" id="sendPhotoBtn" style="width:100%">Αποστολή</button>`);
@@ -1779,9 +2137,12 @@ $('photoFile').onchange=e=>{
       const path=`${convId}/${crypto.randomUUID()}.jpg`;
       const up=await sb.storage.from('chat-photos').upload(path,blob,{contentType:'image/jpeg',upsert:false});
       if(up.error)throw up.error;
-      const {data,error}=await sb.from('messages').insert({conversation_id:convId,sender_id:state.me.id,content:path,kind:'photo'}).select(MSG_COLS).single();
+      const row={conversation_id:convId,sender_id:state.me.id,content:path,kind:'photo'};
+      if(reply&&reply.conversation_id===convId)row.reply_to=reply.id;
+      const {data,error}=await sb.from('messages').insert(row).select(MSG_COLS).single();
       if(error)throw error;
       URL.revokeObjectURL(url);closeSheet();
+      if(reply&&state.replyTo?.id===reply.id)cancelReply();
       if(state.activeId===convId)appendMessage(data);
       bumpConv(data);
     }catch(err){console.warn(err);btn.disabled=false;btn.textContent='Αποστολή';toast('Η φωτογραφία δεν στάλθηκε');}
@@ -1843,10 +2204,12 @@ async function react(m,emoji){
   if(error){m.reactions=before;renderMessages(false);toast('Δεν αποθηκεύτηκε η αντίδραση');}
 }
 function closeReactPicker(){document.querySelectorAll('.rx-overlay').forEach(x=>x.remove());}
+// long press: emoji bar + menu (Απάντηση, Αντιγραφή, Επεξεργασία, Αναίρεση αποστολής)
 function openReactPicker(b){
   const m=msgById(+b.dataset.id);if(!m)return;
   closeReactPicker();
   const mine=m.sender_id===state.me.id,cur=myReaction(m);
+  const canEdit=mine&&m.kind==='text'&&Date.now()-new Date(m.created_at)<EDIT_MS;
   const rect=b.getBoundingClientRect(),W=innerWidth,H=innerHeight;
   const ov=document.createElement('div');ov.className='rx-overlay';
   const clone=b.cloneNode(true);clone.classList.add('rx-clone');
@@ -1856,9 +2219,12 @@ function openReactPicker(b){
   pop.innerHTML=`<div class="rx-bar">${QUICK_RX.map(e=>`<button data-e="${e}" class="${e===cur?'on':''}">${e}</button>`).join('')}<button class="more" aria-label="Περισσότερα">+</button></div>
     <div class="rx-more" hidden>${MORE_RX.map(e=>`<button data-e="${e}" class="${e===cur?'on':''}">${e}</button>`).join('')}</div>`;
   const menu=document.createElement('div');menu.className='rx-menu';
-  menu.innerHTML=(m.kind==='text'?`<button data-act="copy">Αντιγραφή<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>`:'')+
-    (cur?`<button data-act="unreact">Αφαίρεση αντίδρασης<span>${cur}</span></button>`:'');
-  ov.append(clone,pop);if(menu.innerHTML)ov.append(menu);
+  menu.innerHTML=`<button data-act="reply">Απάντηση${ICON_REPLY}</button>`+
+    (m.kind==='text'?`<button data-act="copy">Αντιγραφή${ICON_COPY}</button>`:'')+
+    (canEdit?`<button data-act="edit">Επεξεργασία${ICON_EDIT}</button>`:'')+
+    (cur?`<button data-act="unreact">Αφαίρεση αντίδρασης<span>${cur}</span></button>`:'')+
+    (mine?`<button data-act="unsend" class="danger">Αναίρεση αποστολής${ICON_UNDO}</button>`:'');
+  ov.append(clone,pop,menu);
   document.body.appendChild(ov);
   const place=()=>{
     const pw=pop.offsetWidth,ph=pop.querySelector('.rx-bar').offsetHeight;
@@ -1866,13 +2232,11 @@ function openReactPicker(b){
     const above=rect.top-ph-10>8;
     let top=above?rect.top-ph-10:rect.bottom+10;
     pop.style.left=left+'px';pop.style.top=Math.min(top,H-pop.offsetHeight-8)+'px';
-    if(menu.isConnected){
-      const mw=menu.offsetWidth,mh=menu.offsetHeight;
-      let ml=mine?rect.right-mw:rect.left;ml=Math.max(8,Math.min(W-mw-8,ml));
-      let mt=above?rect.bottom+10:top+pop.offsetHeight+10;
-      if(mt+mh>H-8)mt=Math.max(8,(above?rect.top-ph-20-mh:H-mh-8));
-      menu.style.left=ml+'px';menu.style.top=mt+'px';
-    }
+    const mw=menu.offsetWidth,mh=menu.offsetHeight;
+    let ml=mine?rect.right-mw:rect.left;ml=Math.max(8,Math.min(W-mw-8,ml));
+    let mt=above?rect.bottom+10:top+pop.offsetHeight+10;
+    if(mt+mh>H-8)mt=Math.max(8,(above?rect.top-ph-20-mh:H-mh-8));
+    menu.style.left=ml+'px';menu.style.top=mt+'px';
   };
   place();
   ov.addEventListener('click',e=>{
@@ -1880,8 +2244,15 @@ function openReactPicker(b){
     if(eb){closeReactPicker();react(m,eb.dataset.e);return;}
     if(e.target.closest('.more')){const g=pop.querySelector('.rx-more');g.hidden=!g.hidden;place();return;}
     const act=e.target.closest('[data-act]')?.dataset.act;
-    if(act==='copy'){navigator.clipboard?.writeText(m.content).then(()=>toast('Αντιγράφηκε'),()=>toast('Δεν αντιγράφηκε'));}
-    if(act==='unreact'&&cur)react(m,cur);
+    if(act){
+      closeReactPicker();
+      if(act==='reply')startReply(m);
+      if(act==='copy')navigator.clipboard?.writeText(m.content).then(()=>toast('Αντιγράφηκε'),()=>toast('Δεν αντιγράφηκε'));
+      if(act==='edit')startEdit(m);
+      if(act==='unreact'&&cur)react(m,cur);
+      if(act==='unsend')unsendMsg(m);
+      return;
+    }
     if(e.target.closest('.rx-bar,.rx-more'))return;
     closeReactPicker();
   });
@@ -1902,19 +2273,49 @@ function showReactors(id){
   };
   openSheet('Αντιδράσεις','');draw();sheetRefresher=draw;
 }
-// gestures on the message list (set once)
+// gestures on the message list (set once):
+// double tap = ❤️, long press = menu, swipe right = reply
+const SWIPE_AT=64;
 (()=>{
   const box=$('messages');
-  let timer=null,start=null,fired=false,lastTap={id:null,t:0};
+  let timer=null,start=null,fired=false,lastTap={id:null,t:0},sw=null;
   const cancel=()=>{clearTimeout(timer);start=null;};
   box.addEventListener('pointerdown',e=>{
     const b=e.target.closest('.bubble[data-id]');if(!b)return;
+    fired=false;
     if(e.pointerType==='mouse'&&e.button!==0)return;
-    fired=false;start={x:e.clientX,y:e.clientY};clearTimeout(timer);
-    timer=setTimeout(()=>{fired=true;start=null;navigator.vibrate?.(12);openReactPicker(b);},450);
+    start={x:e.clientX,y:e.clientY};clearTimeout(timer);
+    timer=setTimeout(()=>{fired=true;start=null;sw=null;navigator.vibrate?.(12);openReactPicker(b);},450);
+    sw=e.pointerType==='mouse'?null:{row:b.closest('.row'),id:+b.dataset.id,x:e.clientX,y:e.clientY,dx:0,on:false,buzz:false};
   });
-  box.addEventListener('pointermove',e=>{if(start&&Math.hypot(e.clientX-start.x,e.clientY-start.y)>10)cancel();});
-  box.addEventListener('pointerup',cancel);box.addEventListener('pointercancel',cancel);box.addEventListener('scroll',cancel,{passive:true});
+  box.addEventListener('pointermove',e=>{
+    if(start&&Math.hypot(e.clientX-start.x,e.clientY-start.y)>10)cancel();
+    if(!sw)return;
+    const dx=e.clientX-sw.x,dy=e.clientY-sw.y;
+    if(!sw.on){
+      if(Math.abs(dy)>12&&Math.abs(dy)>Math.abs(dx)){sw=null;return;}
+      if(!(dx>12&&dx>Math.abs(dy)*1.4))return;
+      sw.on=true;
+      const ic=document.createElement('span');ic.className='swipe-ic';ic.innerHTML=ICON_REPLY;
+      sw.row.appendChild(ic);sw.ic=ic;
+    }
+    sw.dx=Math.max(0,Math.min(dx,120));
+    sw.row.style.transform=`translateX(${sw.dx*.7}px)`;
+    const p=Math.min(1,sw.dx/SWIPE_AT);
+    sw.ic.style.opacity=p;sw.ic.style.transform=`translateY(-50%) scale(${.6+.4*p})`;
+    if(sw.dx>=SWIPE_AT&&!sw.buzz){sw.buzz=true;navigator.vibrate?.(10);}
+    if(sw.dx<SWIPE_AT)sw.buzz=false;
+  });
+  const endSwipe=ok=>{
+    const s=sw;sw=null;if(!s||!s.on)return;
+    fired=true;setTimeout(()=>{fired=false;},400); // swallow only the click that ends the swipe
+    s.row.classList.add('swipe-back');s.row.style.transform='';
+    setTimeout(()=>{s.row.classList.remove('swipe-back');s.ic?.remove();},220);
+    if(ok&&s.dx>=SWIPE_AT)startReply(msgById(s.id));
+  };
+  box.addEventListener('pointerup',()=>{cancel();endSwipe(true);});
+  box.addEventListener('pointercancel',()=>{cancel();endSwipe(false);});
+  box.addEventListener('scroll',cancel,{passive:true});
   box.addEventListener('contextmenu',e=>{
     const b=e.target.closest('.bubble[data-id]');if(!b)return;
     e.preventDefault();cancel();
@@ -1924,6 +2325,8 @@ function showReactors(id){
   box.addEventListener('click',e=>{
     if(fired){fired=false;e.preventDefault();return;}
     const r=e.target.closest('.reacts[data-rid]');if(r)return showReactors(+r.dataset.rid);
+    const j=e.target.closest('[data-jump]');if(j)return jumpTo(+j.dataset.jump);
+    const pl=e.target.closest('[data-play]');if(pl){const m=msgById(+pl.dataset.play);if(m)togglePlay(m);return;}
     const b=e.target.closest('.bubble[data-id]');if(!b||e.target.closest('a'))return;
     const m=msgById(+b.dataset.id);if(!m)return;
     if(b.dataset.open)return openPhoto(m);
@@ -1932,6 +2335,211 @@ function showReactors(id){
     else lastTap={id:m.id,t:now};
   });
 })();
+
+/* ================= VOICE MESSAGES ================= */
+// hold the mic = record, let go = send, slide left = cancel.
+// quick tap = hands-free recording with 🗑 and send buttons. Max 1 minute.
+const VOICE_MAX=60e3;
+const rec={on:false,starting:false,locked:false,holding:false};
+function pickAudioType(){
+  if(!window.MediaRecorder)return '';
+  for(const t of ['audio/mp4;codecs=mp4a.40.2','audio/mp4','audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus']){
+    try{if(MediaRecorder.isTypeSupported(t))return t;}catch{}
+  }
+  return '';
+}
+function audioInfo(type){
+  const base=String(type||'').split(';')[0]||'audio/mp4';
+  if(/webm/.test(base))return {type:'audio/webm',ext:'webm'};
+  if(/ogg/.test(base))return {type:'audio/ogg',ext:'ogg'};
+  return {type:'audio/mp4',ext:'mp4'};
+}
+function lockRec(){
+  rec.locked=true;rec.holding=false;
+  $('rec').classList.add('locked');$('rec').style.removeProperty('--sx');
+}
+async function startRec(){
+  if(rec.on||rec.starting||!state.activeId)return;
+  if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){rec.holding=false;return toast('Αυτός ο browser δεν υποστηρίζει ηχογράφηση');}
+  rec.starting=true;
+  const conv=state.activeId;
+  let stream;
+  try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});}
+  catch(e){rec.starting=false;rec.holding=false;return toast(e&&e.name==='NotAllowedError'?'Δώσε άδεια για το μικρόφωνο από τις ρυθμίσεις':'Δεν άνοιξε το μικρόφωνο');}
+  // cancelled or left the chat while the permission popup was up
+  const gone=!rec.starting||state.activeId!==conv;
+  rec.starting=false;
+  if(gone){stream.getTracks().forEach(t=>t.stop());return;}
+  const want=pickAudioType();
+  let mr;
+  try{mr=new MediaRecorder(stream,want?{mimeType:want}:undefined);}catch{mr=new MediaRecorder(stream);}
+  Object.assign(rec,{on:true,stream,mr,chunks:[],peaks:[],t0:Date.now(),conv:state.activeId,reply:state.replyTo,type:mr.mimeType||want});
+  // let go while the permission popup was up -> keep going hands-free
+  if(!rec.holding)rec.locked=true;
+  mr.ondataavailable=e=>{if(e.data&&e.data.size)rec.chunks.push(e.data);};
+  mr.start(250);
+  rec.an=null;
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;
+    rec.ctx=new AC();const src=rec.ctx.createMediaStreamSource(stream);
+    rec.an=rec.ctx.createAnalyser();rec.an.fftSize=512;src.connect(rec.an);rec.buf=new Uint8Array(rec.an.fftSize);
+  }catch{}
+  $('composer').classList.add('recording');$('rec').classList.toggle('locked',rec.locked);
+  $('recLive').innerHTML='';$('recTime').textContent='0:00';
+  navigator.vibrate?.(15);
+  rec.tick=setInterval(recTick,90);
+}
+function recTick(){
+  const el=Date.now()-rec.t0;
+  let lv=.04;
+  if(rec.an){
+    rec.an.getByteTimeDomainData(rec.buf);
+    let s=0;for(const v of rec.buf){const d=(v-128)/128;s+=d*d;}
+    lv=Math.min(1,Math.sqrt(s/rec.buf.length)*4);
+  }
+  rec.peaks.push(lv);
+  $('recTime').textContent=fmtDur(Math.floor(el/1000)*1000);
+  const live=$('recLive'),i=document.createElement('i');
+  i.style.height=Math.max(10,lv*100)+'%';live.appendChild(i);
+  while(live.children.length>70)live.firstChild.remove();
+  if(el>=VOICE_MAX){stopRec(true);toast('Το φωνητικό φτάνει μέχρι 1 λεπτό');}
+}
+function stopRec(send){
+  if(rec.starting){rec.starting=false;rec.holding=false;return;}
+  if(!rec.on)return;
+  const r={...rec},dur=Date.now()-r.t0;
+  rec.on=false;rec.locked=false;rec.holding=false;clearInterval(r.tick);
+  $('composer').classList.remove('recording');$('rec').classList.remove('locked');$('rec').style.removeProperty('--sx');
+  const done=()=>{
+    r.stream.getTracks().forEach(t=>t.stop());try{r.ctx?.close();}catch{}
+    if(!send)return;
+    if(dur<800)return toast('Πολύ σύντομο. Κράτα πατημένο το μικρόφωνο όσο μιλάς.');
+    sendVoice(r,dur);
+  };
+  if(r.mr.state==='inactive')return done();
+  r.mr.onstop=done;
+  try{r.mr.stop();}catch{done();}
+}
+// ~40 bars for the bubble, scaled so the loudest bit fills it
+function wavePeaks(p,n=40){
+  if(!p.length)return Array(n).fill(12);
+  const out=[];
+  for(let i=0;i<n;i++){
+    const a=Math.floor(i*p.length/n),b=Math.max(a+1,Math.floor((i+1)*p.length/n));
+    let mx=0;for(let j=a;j<b&&j<p.length;j++)mx=Math.max(mx,p[j]);
+    out.push(mx);
+  }
+  const top=Math.max(...out,.05);
+  return out.map(v=>Math.max(10,Math.round(v/top*100)));
+}
+async function sendVoice(r,dur){
+  const info=audioInfo(r.type);
+  const blob=new Blob(r.chunks,{type:info.type});
+  if(!blob.size)return toast('Δεν γράφτηκε ήχος. Δοκίμασε ξανά.');
+  const path=`${r.conv}/${crypto.randomUUID()}.${info.ext}`;
+  try{
+    const up=await sb.storage.from('voice-notes').upload(path,blob,{contentType:info.type,upsert:false});
+    if(up.error)throw up.error;
+    const row={conversation_id:r.conv,sender_id:state.me.id,content:path,kind:'voice',meta:{d:Math.round(dur),w:wavePeaks(r.peaks)}};
+    if(r.reply&&r.reply.conversation_id===r.conv)row.reply_to=r.reply.id;
+    const {data,error}=await sb.from('messages').insert(row).select(MSG_COLS).single();
+    if(error){sb.storage.from('voice-notes').remove([path]);throw error;}
+    // my own note plays straight from memory
+    voiceSrc.set(path,{url:URL.createObjectURL(blob),exp:Infinity});
+    if(r.reply&&state.replyTo?.id===r.reply.id)cancelReply();
+    if(state.activeId===r.conv)appendMessage(data);
+    bumpConv(data);
+  }catch(e){console.warn(e);toast('Το φωνητικό δεν στάλθηκε');}
+}
+(()=>{
+  const mic=$('micBtn');let x0=0,downAt=0,pid=null;
+  mic.addEventListener('contextmenu',e=>e.preventDefault());
+  mic.addEventListener('pointerdown',e=>{
+    if(e.pointerType==='mouse'&&e.button!==0)return;
+    e.preventDefault();
+    if(rec.on||rec.starting)return;
+    pid=e.pointerId;x0=e.clientX;downAt=Date.now();
+    rec.holding=true;rec.locked=false;
+    startRec();
+  });
+  addEventListener('pointermove',e=>{
+    if(e.pointerId!==pid||!rec.on||rec.locked)return;
+    const dx=Math.min(0,e.clientX-x0);
+    $('rec').style.setProperty('--sx',dx+'px');
+    if(dx<-110){pid=null;stopRec(false);navigator.vibrate?.(20);toast('Η ηχογράφηση ακυρώθηκε');}
+  });
+  const up=e=>{
+    if(e.pointerId!==pid)return;
+    pid=null;rec.holding=false;
+    if(!rec.on)return; // still asking for permission: startRec will go hands-free
+    if(rec.locked)return;
+    // quick tap, or the phone interrupted the touch: keep recording hands-free
+    if(Date.now()-downAt<400||e.type==='pointercancel')return lockRec();
+    stopRec(true);
+  };
+  addEventListener('pointerup',up);addEventListener('pointercancel',up);
+  $('recDel').onclick=()=>stopRec(false);
+  $('recSend').onclick=()=>stopRec(true);
+})();
+
+// playback
+const voiceSrc=new Map(),voicePending=new Set();
+async function voiceUrl(path){
+  const hit=voiceSrc.get(path);if(hit&&hit.exp>Date.now())return hit.url;
+  const {data,error}=await sb.storage.from('voice-notes').createSignedUrl(path,6*3600);
+  if(error||!data)return null;
+  voiceSrc.set(path,{url:data.signedUrl,exp:Date.now()+5*3600e3});return data.signedUrl;
+}
+// get links ahead of time so a tap plays at once (iPhone wants play() right on the tap)
+function prefetchVoices(){
+  state.msgs.forEach(m=>{
+    if(m.kind!=='voice'||voiceSrc.has(m.content)||voicePending.has(m.content))return;
+    voicePending.add(m.content);
+    voiceUrl(m.content).finally(()=>voicePending.delete(m.content));
+  });
+}
+const player={id:null,audio:new Audio(),raf:0};
+player.audio.preload='auto';
+player.audio.addEventListener('ended',()=>{player.id=null;voiceUI();});
+player.audio.addEventListener('pause',voiceUI);
+player.audio.addEventListener('play',()=>{
+  voiceUI();cancelAnimationFrame(player.raf);
+  const f=()=>{voiceUI();if(!player.audio.paused)player.raf=requestAnimationFrame(f);};
+  player.raf=requestAnimationFrame(f);
+});
+async function togglePlay(m){
+  const a=player.audio;
+  if(player.id===m.id){a.paused?a.play().catch(()=>{}):a.pause();return;}
+  a.pause();player.id=m.id;voiceUI();
+  const hit=voiceSrc.get(m.content);
+  const url=hit&&hit.exp>Date.now()?hit.url:await voiceUrl(m.content);
+  if(player.id!==m.id)return;
+  if(!url){player.id=null;voiceUI();return toast('Το φωνητικό δεν είναι πια διαθέσιμο');}
+  a.src=url;
+  a.play().catch(()=>{player.id=null;voiceUI();toast('Δεν έπαιξε. Πάτα ξανά.');});
+}
+function stopVoice(){player.audio.pause();player.id=null;voiceUI();}
+function voiceBubble(m){
+  const w=Array.isArray(m.meta?.w)&&m.meta.w.length?m.meta.w.slice(0,60):Array(40).fill(30);
+  const bars=w.map(v=>`<i style="height:${Math.max(10,Math.min(100,+v||10))}%"></i>`).join('');
+  return `<div class="bubble voice" data-id="${m.id}"><button class="vplay" data-play="${m.id}" aria-label="Αναπαραγωγή">${ICON_PLAY}</button>
+    <span class="wave">${bars}</span><span class="vdur">${fmtDur(m.meta?.d)}</span></div>`;
+}
+function voiceUI(){
+  const a=player.audio;
+  document.querySelectorAll('#messages .bubble.voice').forEach(b=>{
+    const id=+b.dataset.id,m=msgById(id);if(!m)return;
+    const cur=player.id===id,playing=cur&&!a.paused;
+    const d=m.meta?.d||(isFinite(a.duration)?a.duration*1000:0);
+    const t=cur?a.currentTime*1000:0;
+    const btn=b.querySelector('.vplay'),want=playing?'pause':'play';
+    if(btn.dataset.s!==want){btn.dataset.s=want;btn.innerHTML=playing?ICON_PAUSE:ICON_PLAY;btn.setAttribute('aria-label',playing?'Παύση':'Αναπαραγωγή');}
+    const bars=b.querySelectorAll('.wave i'),on=cur&&d?Math.round(Math.min(1,t/d)*bars.length):0;
+    bars.forEach((x,i)=>x.classList.toggle('on',i<on));
+    b.classList.toggle('cur',cur);
+    b.querySelector('.vdur').textContent=fmtDur(cur&&t>0?Math.max(0,d-t):d);
+  });
+}
 
 /* ================= FIT THE VISIBLE SCREEN (keyboard) ================= */
 (()=>{
@@ -2098,6 +2706,250 @@ function settingsHTML(){
       <button class="set-item danger" id="logoutBtn">${ICON_LOGOUT}<div class="tx"><b>Αποσύνδεση</b></div></button>
     </div>`;
 }
+
+/* ================= FEED (friends only, no likes) ================= */
+const POST_COLS='id,author_id,caption,photo_path,photo_w,photo_h,created_at,author:profiles!posts_author_id_fkey(id,username,display_name,avatar_url,bio)';
+const FEED_PAGE=15,CAPTION_MAX=2200;
+const feed={posts:[],loaded:false,loading:false,more:true,fresh:0,newest:null,at:0};
+const ICON_SEND_DM='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4Z"/></svg>';
+const ICON_DOTS='<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>';
+
+// "πριν από 3 ώρες"
+function relLong(d){
+  const s=Math.max(0,(Date.now()-new Date(d))/1000);
+  if(s<60)return 'μόλις τώρα';
+  const m=Math.floor(s/60);if(m<60)return `πριν από ${m} ${m===1?'λεπτό':'λεπτά'}`;
+  const h=Math.floor(m/60);if(h<24)return `πριν από ${h} ${h===1?'ώρα':'ώρες'}`;
+  const dd=Math.floor(h/24);if(dd<7)return `πριν από ${dd} ${dd===1?'μέρα':'μέρες'}`;
+  return new Date(d).toLocaleDateString('el-GR',{day:'numeric',month:'long',year:new Date(d).getFullYear()===new Date().getFullYear()?undefined:'numeric'});
+}
+
+// signed links for post photos (the bucket is private: friends only)
+const postSrc=new Map();
+const postUrl=path=>{const h=postSrc.get(path);return h&&h.exp>Date.now()?h.url:null;};
+async function postUrls(paths){
+  const need=[...new Set(paths.filter(p=>p&&!postUrl(p)))];
+  if(!need.length)return;
+  const {data}=await sb.storage.from('posts').createSignedUrls(need,6*3600);
+  (data||[]).forEach(d=>{if(d&&d.signedUrl&&d.path)postSrc.set(d.path,{url:d.signedUrl,exp:Date.now()+5*3600e3});});
+}
+
+/* ---- the feed list ---- */
+function showFeed(){
+  markFeedSeen();
+  if(!feed.loaded||feed.fresh||Date.now()-feed.at>60e3)loadFeed(true);
+  else renderFeed();
+}
+async function loadFeed(reset=false){
+  if(feed.loading||!state.me)return;
+  if(!reset&&!feed.more)return;
+  feed.loading=true;
+  let q=sb.from('posts').select(POST_COLS).order('created_at',{ascending:false}).limit(FEED_PAGE);
+  if(!reset&&feed.posts.length)q=q.lt('created_at',feed.posts[feed.posts.length-1].created_at);
+  const {data,error}=await q;
+  if(error){feed.loading=false;if(!feed.loaded){feed.loaded=true;renderFeed();}return toast('Δεν φόρτωσε η ροή');}
+  const rows=data||[];
+  await postUrls(rows.map(p=>p.photo_path));
+  feed.loading=false;
+  feed.posts=reset?rows:feed.posts.concat(rows.filter(r=>!feed.posts.some(x=>x.id===r.id)));
+  feed.more=rows.length===FEED_PAGE;feed.loaded=true;feed.at=Date.now();
+  if(reset){feed.fresh=0;const f=rows.find(p=>p.author_id!==state.me.id);if(f&&(!feed.newest||f.created_at>feed.newest))feed.newest=f.created_at;}
+  if(state.view==='feed')markFeedSeen();
+  renderFeed();
+}
+function postHTML(p){
+  const mine=p.author_id===state.me.id,a=mine?state.me:p.author;
+  const cap=p.caption||'';
+  const long=cap.length>180||cap.split('\n').length>3;
+  let body;
+  if(p.photo_path){
+    const url=postUrl(p.photo_path);
+    const ratio=p.photo_w&&p.photo_h?Math.min(1.91,Math.max(.8,p.photo_w/p.photo_h)):1;
+    body=`<div class="post-media" style="aspect-ratio:${ratio.toFixed(4)}">${url?`<img src="${esc(url)}" alt="" loading="lazy" onload="this.classList.add('ok')">`:''}</div>`+
+      (cap?`<div class="post-cap${long?' clamp':''}"><b>${esc(a?.username||'')}</b>${linkify(cap)}</div>`:'');
+  }else body=`<div class="post-text${long?' clamp':''}">${linkify(cap)}</div>`;
+  return `<article class="post" data-pid="${p.id}">
+    <div class="post-head"><button class="ph" data-user="${p.author_id}">${avP(a,'sm')}<span class="n"><b>${esc(a?.username||'')}</b><span>${esc(relLong(p.created_at))}</span></span></button>
+      ${mine?`<button class="icon-btn" data-del="${p.id}" aria-label="Διαγραφή δημοσίευσης">${ICON_DOTS}</button>`
+            :`<button class="icon-btn" data-dm="${p.author_id}" aria-label="Στείλε μήνυμα στον/στην ${esc(a?.username||'')}">${ICON_SEND_DM}</button>`}</div>
+    ${body}${long?`<button class="more-btn" data-expand>περισσότερα</button>`:''}</article>`;
+}
+function renderFeed(){
+  const list=$('feedList');
+  if(!state.me)return;
+  if(!feed.loaded){list.innerHTML='<div class="empty">Φόρτωση…</div>';return;}
+  let h=feed.fresh?`<button class="new-pill" id="freshBtn">↑ Νέες δημοσιεύσεις</button>`:'';
+  if(!feed.posts.length){
+    h+=`<div class="empty"><b>Η ροή σου είναι άδεια</b>${state.friends.length?'Εδώ θα βλέπεις ό,τι ανεβάζουν οι φίλοι σου.':'Πρόσθεσε φίλους για να βλέπεις τι ανεβάζουν.'}
+      <br><button class="btn btn-primary btn-sm" id="firstPost" style="margin-top:14px">Ανέβασε κάτι</button></div>`;
+  }else{
+    h+=feed.posts.map(postHTML).join('');
+    h+=feed.more?`<div class="empty" style="padding:18px">Φόρτωση…</div>`:`<div class="empty" style="padding:22px 24px 30px">Αυτά για τώρα ✨</div>`;
+  }
+  const keep=list.scrollTop;list.innerHTML=h;list.scrollTop=keep;
+  const fb=$('freshBtn');if(fb)fb.onclick=()=>{list.scrollTo({top:0});loadFeed(true);};
+  const fp=$('firstPost');if(fp)fp.onclick=openNewPost;
+}
+$('feedList').addEventListener('scroll',e=>{
+  const l=e.target;
+  if(feed.more&&!feed.loading&&l.scrollHeight-l.scrollTop-l.clientHeight<600)loadFeed(false);
+},{passive:true});
+$('newPostBtn').onclick=()=>openNewPost();
+
+// taps inside a post (feed, or a post opened from a profile grid)
+function onPostClick(e){
+  const x=e.target.closest('[data-expand]');
+  if(x){x.previousElementSibling?.classList.remove('clamp');x.remove();return;}
+  const u=e.target.closest('[data-user]');
+  if(u){
+    const id=u.dataset.user;
+    if(id===state.me.id){closeSheet();return setView('profile');}
+    const p=findPost(+u.closest('[data-pid]').dataset.pid);
+    return openUser(state.friends.find(f=>f.id===id)||p?.author);
+  }
+  const dm=e.target.closest('[data-dm]');
+  if(dm){closeSheet();setView('messages');return startDirect(dm.dataset.dm);}
+  const del=e.target.closest('[data-del]');
+  if(del)return deletePost(+del.dataset.del);
+}
+$('feedList').addEventListener('click',onPostClick);
+function findPost(id){return feed.posts.find(p=>p.id===id)||(state.myPosts||[]).find(p=>p.id===id)||openPostCache.get(id);}
+
+async function deletePost(id){
+  const p=findPost(id);if(!p)return;
+  if(!confirm('Διαγραφή δημοσίευσης;\nΘα φύγει από τη ροή όλων των φίλων σου.'))return;
+  const {error}=await sb.from('posts').delete().eq('id',id);
+  if(error)return toast('Δεν διαγράφηκε');
+  if(p.photo_path)sb.storage.from('posts').remove([p.photo_path]);
+  closeSheet();dropPost(id);toast('Η δημοσίευση διαγράφηκε');
+}
+function dropPost(id){
+  const a=feed.posts.length,b=(state.myPosts||[]).length;
+  feed.posts=feed.posts.filter(p=>p.id!==id);
+  if(state.myPosts)state.myPosts=state.myPosts.filter(p=>p.id!==id);
+  if(feed.posts.length!==a)renderFeed();
+  if((state.myPosts||[]).length!==b)renderProfile();
+}
+
+/* ---- "new posts" dot on the Ροή tab ---- */
+function updateFeedDot(){
+  const seen=lsGet('fc-feed-seen');
+  const show=!!feed.newest&&state.view!=='feed'&&(!seen||feed.newest>seen);
+  $('feedDot').classList.toggle('hidden',!show);
+}
+function markFeedSeen(){lsSet('fc-feed-seen',new Date().toISOString());updateFeedDot();}
+async function checkFeedDot(){
+  const {data}=await sb.from('posts').select('created_at').neq('author_id',state.me.id).order('created_at',{ascending:false}).limit(1);
+  if(data&&data[0])feed.newest=data[0].created_at;
+  updateFeedDot();
+}
+function onNewPost(p){
+  if(!state.me||p.author_id===state.me.id)return;
+  feed.newest=p.created_at;feed.fresh++;
+  if(state.view==='feed'){
+    markFeedSeen();
+    if($('feedList').scrollTop<40&&!$('overlay'))loadFeed(true);else renderFeed();
+  }else updateFeedDot();
+}
+
+/* ---- profile grids ---- */
+async function loadMyPosts(){
+  state.myPostsLoading=true;
+  const {data,error}=await sb.from('posts').select(POST_COLS).eq('author_id',state.me.id).order('created_at',{ascending:false}).limit(90);
+  state.myPostsLoading=false;
+  if(error){state.myPosts=[];renderProfile();return;}
+  await postUrls((data||[]).map(p=>p.photo_path));
+  state.myPosts=data||[];renderProfile();
+}
+async function loadUserPosts(uid){
+  const {data}=await sb.from('posts').select(POST_COLS).eq('author_id',uid).order('created_at',{ascending:false}).limit(90);
+  await postUrls((data||[]).map(p=>p.photo_path));
+  return data||[];
+}
+function gridHTML(posts){
+  return `<div class="grid">${posts.map(p=>{
+    if(p.photo_path){const u=postUrl(p.photo_path);return `<button class="tile" data-post="${p.id}" aria-label="Δημοσίευση"${u?` style="background-image:url(&quot;${esc(u)}&quot;)"`:''}></button>`;}
+    return `<button class="tile txt" data-post="${p.id}"><span>${esc(p.caption)}</span></button>`;
+  }).join('')}</div>`;
+}
+function wireGrid(root,posts){
+  if(!root)return;
+  root.querySelectorAll('[data-post]').forEach(b=>b.onclick=()=>{const p=posts.find(x=>x.id===+b.dataset.post);if(p)openPost(p);});
+}
+const openPostCache=new Map();
+function openPost(p){
+  openPostCache.set(p.id,p);
+  openSheet('Δημοσίευση',`<div id="onePost">${postHTML(p)}</div>`);
+  $('onePost').addEventListener('click',onPostClick);
+}
+
+/* ---- new post ---- */
+function imgSize(blob){
+  return new Promise(res=>{const u=URL.createObjectURL(blob),i=new Image();
+    i.onload=()=>{res({w:i.naturalWidth,h:i.naturalHeight});URL.revokeObjectURL(u);};
+    i.onerror=()=>{res({w:null,h:null});URL.revokeObjectURL(u);};i.src=u;});
+}
+function openNewPost(){
+  let file=null,preview=null;
+  openSheet('Νέα δημοσίευση',`<div class="np">
+      <button class="np-pick" id="npPick">${ICON_IMG}<span>Πρόσθεσε φωτογραφία</span></button>
+      <div class="np-prev hidden" id="npPrev"><img id="npImg" alt=""><button class="np-x" id="npX" aria-label="Αφαίρεση φωτογραφίας">${ICON_X}</button></div>
+      <input type="file" id="npFile" accept="image/*" hidden>
+      <textarea class="inp" id="npCap" rows="4" maxlength="${CAPTION_MAX}" placeholder="Γράψε κάτι που σου αρέσει…"></textarea>
+      <div class="hint"><span>${ICON_LOCK.replace('<svg ','<svg style="width:13px;height:13px;display:inline-block;vertical-align:-2px;margin-right:4px" ')}Τη βλέπουν μόνο οι φίλοι σου</span><span id="npCount"></span></div>
+    </div>`,
+    `<button class="btn btn-primary" id="npShare" style="width:100%" disabled>Κοινοποίηση</button>`);
+  const cap=$('npCap');
+  const upd=()=>{
+    $('npShare').disabled=!file&&!cap.value.trim();
+    const n=cap.value.length;$('npCount').textContent=n>CAPTION_MAX-200?`${n}/${CAPTION_MAX}`:'';
+  };
+  const clearPic=()=>{file=null;if(preview)URL.revokeObjectURL(preview);preview=null;$('npPrev').classList.add('hidden');$('npPick').classList.remove('hidden');upd();};
+  cap.addEventListener('input',upd);
+  $('npPick').onclick=()=>$('npFile').click();
+  $('npX').onclick=clearPic;
+  $('npFile').onchange=e=>{
+    const f=e.target.files[0];e.target.value='';if(!f)return;
+    if(!f.type.startsWith('image/'))return toast('Διάλεξε μια εικόνα');
+    if(preview)URL.revokeObjectURL(preview);
+    file=f;preview=URL.createObjectURL(f);$('npImg').src=preview;
+    $('npPrev').classList.remove('hidden');$('npPick').classList.add('hidden');upd();
+  };
+  const close0=$('closeSheet').onclick;
+  $('closeSheet').onclick=()=>{if(preview)URL.revokeObjectURL(preview);close0();};
+  $('npShare').onclick=async()=>{
+    const btn=$('npShare'),caption=cap.value.trim();
+    if(!file&&!caption)return;
+    btn.disabled=true;btn.textContent='Κοινοποίηση…';
+    let path=null;
+    try{
+      const row={caption};
+      if(file){
+        const blob=await shrinkImage(file,1440);
+        const {w,h}=await imgSize(blob);
+        path=`${state.me.id}/${crypto.randomUUID()}.jpg`;
+        const up=await sb.storage.from('posts').upload(path,blob,{contentType:'image/jpeg',upsert:false});
+        if(up.error)throw up.error;
+        Object.assign(row,{photo_path:path,photo_w:w,photo_h:h});
+        postSrc.set(path,{url:URL.createObjectURL(blob),exp:Infinity}); // show it straight away
+      }
+      const {data,error}=await sb.from('posts').insert(row).select(POST_COLS).single();
+      if(error)throw error;
+      if(preview)URL.revokeObjectURL(preview);
+      closeSheet();
+      feed.posts.unshift(data);if(state.myPosts)state.myPosts.unshift(data);
+      if(state.view==='profile')renderProfile();else setView('feed');
+      renderFeed();$('feedList').scrollTop=0;
+      toast('Δημοσιεύτηκε');
+    }catch(err){
+      console.warn(err);
+      if(path)sb.storage.from('posts').remove([path]);
+      btn.disabled=false;btn.textContent='Κοινοποίηση';toast('Δεν δημοσιεύτηκε. Δοκίμασε ξανά.');
+    }
+  };
+  cap.focus();
+}
+syncComposer();
 </script>
 </body>
 </html>
