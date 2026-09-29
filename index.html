@@ -509,6 +509,10 @@ button.set-item:active{background:var(--hover)}
 .np-x{position:absolute;top:8px;right:8px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;display:grid;place-items:center}
 .np-x svg{width:18px;height:18px}
 .np .hint{display:flex;justify-content:space-between;margin-top:-4px}
+/* new post: the panel sits at the top of the visible screen, so opening or
+   closing the keyboard never moves it */
+.overlay.top{top:var(--vvt,0px);bottom:auto;height:var(--vvh,100%)}
+.overlay.top .sheet{max-height:100%}
 
 @media (max-width:760px){
   aside{width:100%;border-right:0}
@@ -519,7 +523,11 @@ button.set-item:active{background:var(--hover)}
   .row{max-width:82%}
   .overlay{align-items:flex-end;padding:0}
   .sheet{max-width:none;border-radius:20px 20px 0 0;max-height:92dvh;border:0}
+  .overlay.top{align-items:flex-start}
+  .overlay.top .sheet{border-radius:0 0 20px 20px;padding-top:env(safe-area-inset-top);animation:dropin .22s ease-out}
+  .overlay.top .sheet-foot{padding-bottom:14px}
 }
+@keyframes dropin{from{transform:translateY(-100%)}}
 </style>
 </head>
 <body>
@@ -2967,13 +2975,14 @@ function imgSize(blob){
 function openNewPost(withPhoto=false){
   let file=null,preview=null;
   openSheet('Νέα δημοσίευση',`<div class="np">
+      <textarea class="inp" id="npCap" rows="4" maxlength="${CAPTION_MAX}" placeholder="Γράψε κάτι που σου αρέσει…"></textarea>
+      <div class="hint"><span>${ICON_LOCK.replace('<svg ','<svg style="width:13px;height:13px;display:inline-block;vertical-align:-2px;margin-right:4px" ')}Τη βλέπουν μόνο οι φίλοι σου</span><span id="npCount"></span></div>
       <button class="np-pick" id="npPick">${ICON_IMG}<span>Πρόσθεσε φωτογραφία</span></button>
       <div class="np-prev hidden" id="npPrev"><img id="npImg" alt=""><button class="np-x" id="npX" aria-label="Αφαίρεση φωτογραφίας">${ICON_X}</button></div>
       <input type="file" id="npFile" accept="image/*" hidden>
-      <textarea class="inp" id="npCap" rows="4" maxlength="${CAPTION_MAX}" placeholder="Γράψε κάτι που σου αρέσει…"></textarea>
-      <div class="hint"><span>${ICON_LOCK.replace('<svg ','<svg style="width:13px;height:13px;display:inline-block;vertical-align:-2px;margin-right:4px" ')}Τη βλέπουν μόνο οι φίλοι σου</span><span id="npCount"></span></div>
     </div>`,
     `<button class="btn btn-primary" id="npShare" style="width:100%" disabled>Κοινοποίηση</button>`);
+  $('overlay').classList.add('top');
   const cap=$('npCap');
   const upd=()=>{
     $('npShare').disabled=!file&&!cap.value.trim();
